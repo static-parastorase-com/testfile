@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "node server.js",
     "start": "node server.js",
-    "build": "node scripts/build-bundle.js"
+    "build": "echo 'Build not required for static app'"
   },
   "dependencies": {
     "express": "^4.21.2"

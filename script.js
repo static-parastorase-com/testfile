@@ -1459,6 +1459,7 @@ function configurePdfJsWorker() {
 
 // Upload functions
 function showUploadPopup() {
+    window.showUploadPopup = showUploadPopup;
     const popup = document.getElementById('popupOverlay');
     if (popup) {
         popup.style.display = 'flex';

@@ -7,10 +7,28 @@
     <meta name="description" content="Professional Vastu Plan Analysis with 16 zone compass and remedies.">
     <meta property="og:title" content="Vastu Pro | Professional Plan Analysis">
     <meta property="og:description" content="Professional Vastu Plan Analysis with 16 zone compass and remedies.">
+    <!-- Load layout styles before the optional third-party libraries so the
+         browser can paint the workspace correctly on the very first frame. -->
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="professional-analyzer.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;family=Noto+Sans+Devanagari:wght@400;700&amp;family=Playfair+Display:wght@600;700&amp;display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="scripts/jspdf.umd.min.js"></script>
+    <script src="scripts/html2canvas.min.js"></script>
+    <script src="scripts/tesseract.min.js"></script>
+    <script src="scripts/pdf.min.js"></script>
+    <style>
+        /* Force body to be visible */
+        body, body.workspace-loading {
+            opacity: 1 !important;
+            visibility: visible !important;
+        }
+        .workspace-loading::before {
+            display: none !important;
+        }
+    </style>
 </head>
 <body class="workspace-loading">
 <!-- Star background -->
@@ -371,6 +389,24 @@
     </div>
 </div>
 
-<script src="bundle.js"></script>
+<script src="vastu-placement-data.js"></script>
+<script src="vastu-remedies.js"></script>
+<script src="kannada-vastu-remedies.js"></script>
+<script src="telugu-vastu-remedies.js"></script>
+<script src="hindi-vastu-remedies.js"></script>
+<script src="tamil-vastu-remedies.js"></script>
+<script src="malyalam-vastu-remedies.js"></script>
+<script src="hindi-translations.js"></script>
+<script src="kannada-translations.js"></script>
+<script src="tamil-translations.js"></script>
+<script src="telugu-translations.js"></script>
+<script src="malayalam-translations.js"></script>
+<script src="image-asset-manager.js"></script>
+<script src="script.js"></script>
+<script src="advanced-analyzer.js"></script>
+<script src="professional-analyzer-geometry.js"></script>
+<script src="vastu-marma-engine.js"></script>
+<script src="professional-analyzer.js"></script>
+<script src="language-onboarding.js"></script>
 </body>
 </html>
