@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Vastu Pro | Professional Plan Analysis</title>
+    <!-- Load layout styles before the optional third-party libraries so the
+         browser can paint the workspace correctly on the very first frame. -->
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="professional-analyzer.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;family=Noto+Sans+Devanagari:wght@400;700&amp;family=Playfair+Display:wght@600;700&amp;display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="scripts/jspdf.umd.min.js"></script>
+    <script src="scripts/html2canvas.min.js"></script>
+    <script src="scripts/tesseract.min.js"></script>
+    <script src="scripts/pdf.min.js"></script>
+    <style>
+        /* Force body to be visible */
+        body, body.workspace-loading {
+            opacity: 1 !important;
+            visibility: visible !important;
+        }
+        .workspace-loading::before {
+            display: none !important;
+        }
+    </style>
+</head>
+<body class="workspace-loading">
+<!-- Star background -->
+<div class="stars"></div>
+<nav class="app-nav" aria-label="Analysis steps">
+    <button type="button" class="nav-item" data-workspace-action="setup"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14" /><line x1="4" y1="10" x2="4" y2="3" /><line x1="12" y1="21" x2="12" y2="12" /><line x1="12" y1="8" x2="12" y2="3" /><line x1="20" y1="21" x2="20" y2="16" /><line x1="20" y1="12" x2="20" y2="3" /><line x1="2" y1="14" x2="6" y2="14" /><line x1="10" y1="8" x2="14" y2="8" /><line x1="18" y1="16" x2="22" y2="16" /></svg><span data-ui="setup">Setup</span></button>
+    <button type="button" class="nav-item nav-item--active" data-workspace-action="plan"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2" /><line x1="3" y1="9" x2="21" y2="9" /><line x1="3" y1="15" x2="21" y2="15" /><line x1="9" y1="3" x2="9" y2="21" /><line x1="15" y1="3" x2="15" y2="21" /></svg><span data-ui="planAnalysis">Plan Analysis</span></button>
+    <button type="button" class="nav-item" data-workspace-action="report"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10" /><line x1="12" y1="20" x2="12" y2="4" /><line x1="6" y1="20" x2="6" y2="14" /></svg><span data-ui="report">Report</span></button>
+    <button type="button" class="nav-item nav-item--menu" id="workspaceMenuButton" aria-expanded="false" aria-controls="workspaceMenu"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14" /><line x1="4" y1="10" x2="4" y2="3" /><line x1="12" y1="21" x2="12" y2="12" /><line x1="12" y1="8" x2="12" y2="3" /><line x1="20" y1="21" x2="20" y2="16" /><line x1="20" y1="12" x2="20" y2="3" /><line x1="2" y1="14" x2="6" y2="14" /><line x1="10" y1="8" x2="14" y2="8" /><line x1="18" y1="16" x2="22" y2="16" /></svg><span data-ui="controls">Controls</span></button>
+</nav>
+<section class="workspace-menu" id="workspaceMenu" aria-label="Controls" aria-hidden="true" hidden>
+    <div class="workspace-menu__header">
+        <div><span data-ui="workspaceMenu">WORKSPACE MENU</span><strong data-ui="controls">Controls</strong></div>
+        <span class="workspace-menu__persistent"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16v-2" /><polyline points="3.29 7 12 12 20.71 7" /><line x1="12" y1="22" x2="12" y2="12" /></svg><span data-ui="alwaysAvailable">Always available</span></span>
+    </div>
+    <div class="workspace-menu__content" id="workspaceMenuContent"></div>
+</section>
+<div id="projectListOverlay" class="project-list-overlay">
+    <header class="project-list-header">
+        <h2>Vastu Projects</h2>
+        <p>Select a project to continue or create a new one.</p>
+    </header>
+    <div id="projectItems" class="project-list-items">
+        <!-- Project cards injected here -->
+    </div>
+    <button id="createNewProjectBtn" class="fab-button fab-animated-glow" title="Create New Project">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
+    </button>
+</div>
+
+<div class="main-content">
+    <div class="workspace-grid">
+        <main class="canvas-panel">
+            <div class="top-controls">
+                <div class="primary-actions">
+                    <button class="upload-label" id="uploadButton">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:8px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" /></svg>
+                        <span>Upload</span>
+                    </button>
+                    <button class="primary-button ocr-scan" id="scanBtn">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:8px"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
+                        <span>Scan</span>
+                    </button>
+                    <button class="primary-button add-room" id="addAnnotationBtn">
+                        <img class="add-text-icon" src="https://static.wixstatic.com/shapes/602ad4_f5160a933dd943ac8a9233ef1dd5c5fb.svg" alt="Add text icon">
+                        <span class="add-text-label">Add Name</span>
+                    </button>
+                    <button class="primary-button validate" id="validateBtn">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:8px"><polyline points="20 6 9 17 4 12" /></svg>
+                        <span>Check Vastu</span>
+                    </button>
+                    <button class="primary-button advanced-analysis" id="advancedAnalyzerBtn">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:8px"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" /></svg>
+                        <span>Advanced</span>
+                    </button>
+                    <div class="utility-buttons">
+                        <div class="zoom-button" id="zoomInBtn" title="Zoom In">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /><line x1="11" y1="8" x2="11" y2="14" /><line x1="8" y1="11" x2="14" y2="11" /></svg>
+                        </div>
+                        <div class="zoom-button" id="zoomOutBtn" title="Zoom Out">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /><line x1="8" y1="11" x2="14" y2="11" /></svg>
+                        </div>
+                        <div class="zoom-button" id="zoomResetBtn" title="Reset Zoom">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6" /><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" /></svg>
+                        </div>
+                        <div class="fullscreen-toggle" id="fullscreenToggle" title="Fullscreen">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3" /><path d="M21 8V5a2 2 0 0 0-2-2h-3" /><path d="M3 16v3a2 2 0 0 0 2 2h3" /><path d="M16 21h3a2 2 0 0 0 2-2v-3" /></svg>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="container" id="planContainer">
+                <div id="browserNotice" class="browser-notice" role="status" aria-live="polite"></div>
+                <button class="compass-view-toggle" id="compassViewToggle" type="button" aria-label="Show standard compass" title="Show standard compass">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:7px;vertical-align:middle"><circle cx="12" cy="12" r="10" /><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76" /></svg>
+                    <span>Standard compass</span>
+                </button>
+                <button class="guide-toggle" id="guideToggle" aria-pressed="false" aria-label="Toggle guide">
+                    <img id="guideToggleIcon" src="https://static.wixstatic.com/shapes/602ad4_5d0c8c4201374df7b731b67a7bb298a3.svg" alt="Guide toggle icon">
+                </button>
+                <img id="housePlan" src="" alt="House Plan" decoding="async">
+                <div class="plan-empty-state" id="planEmptyState">
+                    <strong data-ui="emptyTitle">Begin your Vastu analysis</strong>
+                    <p data-ui="emptyHint">Upload a clear floor plan, align North, then scan or add room names.</p>
+                    <button type="button" id="emptyUploadBtn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px;vertical-align:middle"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" /></svg><span data-ui="uploadFloorPlan">Upload floor plan</span></button>
+                </div>
+                <div class="annotation-container" id="annotationContainer"></div>
+                <div class="compass-overlay compass-overlay--image">
+                    <div class="compass-rotator">
+                        <img class="compass-image" src="Compas.png" alt="" aria-hidden="true" decoding="async">
+                        <div class="sixteen-zone-compass" id="sixteenZoneCompass" aria-label="Interactive 16 Zone compass"></div>
+                        <div class="vastu-zone-wheel" aria-hidden="true">
+                            <span style="--zone-angle:0deg">N</span>
+                            <span style="--zone-angle:22.5deg">NNE</span>
+                            <span style="--zone-angle:45deg">NE</span>
+                            <span style="--zone-angle:67.5deg">ENE</span>
+                            <span style="--zone-angle:90deg">E</span>
+                            <span style="--zone-angle:112.5deg">ESE</span>
+                            <span style="--zone-angle:135deg">SE</span>
+                            <span style="--zone-angle:157.5deg">SSE</span>
+                            <span style="--zone-angle:180deg">S</span>
+                            <span style="--zone-angle:202.5deg">SSW</span>
+                            <span style="--zone-angle:225deg">SW</span>
+                            <span style="--zone-angle:247.5deg">WSW</span>
+                            <span style="--zone-angle:270deg">W</span>
+                            <span style="--zone-angle:292.5deg">WNW</span>
+                            <span style="--zone-angle:315deg">NW</span>
+                            <span style="--zone-angle:337.5deg">NNW</span>
+                        </div>
+                        <div class="compass-circle"></div>
+                        <div class="compass-range-wheel" aria-hidden="true"></div>
+                        <div class="compass-line vertical"></div>
+                        <div class="compass-line horizontal"></div>
+                        <div class="compass-line diagonal1"></div>
+                        <div class="compass-line diagonal2"></div>
+                        <div class="compass-subdirection-line subdirection1"></div>
+                        <div class="compass-subdirection-line subdirection2"></div>
+                        <div class="compass-subdirection-line subdirection3"></div>
+                        <div class="compass-subdirection-line subdirection4"></div>
+                    </div>
+                </div>
+            </div>
+        </main>
+        <aside class="settings-panel" aria-label="Plan settings">
+            <div class="settings-title"><span><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:8px;vertical-align:middle"><line x1="4" y1="21" x2="4" y2="14" /><line x1="4" y1="10" x2="4" y2="3" /><line x1="12" y1="21" x2="12" y2="12" /><line x1="12" y1="8" x2="12" y2="3" /><line x1="20" y1="21" x2="20" y2="16" /><line x1="20" y1="12" x2="20" y2="3" /><line x1="2" y1="14" x2="6" y2="14" /><line x1="10" y1="8" x2="14" y2="8" /><line x1="18" y1="16" x2="22" y2="16" /></svg> Plan Settings</span><button type="button" title="Collapse settings"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6" /></svg></button></div>
+            <section class="control-part" aria-labelledby="compassControlsTitle">
+                <h2 class="control-part__title" id="compassControlsTitle"><span>01</span><span data-ui="compass">Compass</span></h2>
+                <section class="setting-card setting-card--highlight">
+                    <div class="setting-card__icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m3 3 7.07 16.97 2.51-7.39 6.99-2.51L3 3z" /><path d="m13 13 6 6" /></svg></div>
+                    <div><small data-ui="orientation">ORIENTATION</small><strong data-ui="setNorth">Set North Direction</strong><p data-ui="alignCompass">Align the compass with your floor plan.</p></div>
+                </section>
+                <section class="setting-group">
+                    <div class="setting-group__head"><span data-ui="compassAngle">Compass angle</span><output>0°</output></div>
+                    <input class="gold-range" id="compassAngleRange" type="range" min="0" max="359" value="0" aria-label="Compass angle">
+                    <div class="angle-actions"><button type="button" data-angle-step="-1">− 1°</button><button type="button" id="resetCompassAngle"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;vertical-align:middle"><path d="M23 4v6h-6" /><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" /></svg><span data-ui="reset">Reset</span></button><button type="button" data-angle-step="1">+ 1°</button></div>
+                </section>
+                <section class="setting-group">
+                    <div class="setting-group__head"><span data-ui="compassSize">Compass size</span><output>100%</output></div>
+                    <input class="gold-range" id="compassSizeRange" type="range" min="25" max="300" value="100" step="5" aria-label="Compass size">
+                </section>
+            </section>
+            <section class="control-part" aria-labelledby="displayControlsTitle">
+                <h2 class="control-part__title" id="displayControlsTitle"><span>02</span><span data-ui="display">Display</span></h2>
+                <section class="setting-group">
+                    <div class="setting-group__head"><span data-ui="analysisLayers">Analysis layers</span><button class="text-button" id="selectAllLayers" type="button" data-ui="selectAll">Select all</button></div>
+                    <label class="check-row"><span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px;vertical-align:middle"><circle cx="12" cy="12" r="10" /><path d="M12 2v20" /></svg><span data-ui="subZones">Sub Vastu zones</span></span><input type="checkbox" data-layer="zones" checked></label>
+                    <label class="check-row"><span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px;vertical-align:middle"><rect x="3" y="3" width="18" height="18" rx="2" ry="2" /><line x1="3" y1="9" x2="21" y2="9" /><line x1="3" y1="15" x2="21" y2="15" /><line x1="9" y1="3" x2="9" y2="21" /><line x1="15" y1="3" x2="15" y2="21" /></svg><span data-ui="energyGrid">Energy grid</span></span><input type="checkbox" data-layer="grid" checked></label>
+                    <label class="check-row"><span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px;vertical-align:middle"><polyline points="4 7 4 4 20 4 20 7" /><line x1="9" y1="20" x2="15" y2="20" /><line x1="12" y1="4" x2="12" y2="20" /></svg><span data-ui="roomNames">Room names</span></span><input type="checkbox" data-layer="rooms" checked></label>
+                </section>
+                <section class="setting-group">
+                    <div class="setting-group__head"><span data-ui="overlayOpacity">Overlay opacity</span><output>65%</output></div>
+                    <input class="gold-range" id="overlayOpacityRange" type="range" min="10" max="100" value="65" aria-label="Overlay opacity">
+                </section>
+            </section>
+            <button type="button" class="continue-button" id="sidebarContinueBtn"><span data-ui="continuePlanToolsButton">Continue to Plan Tools</span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19" /><polyline points="19 12 12 19 5 12" /></svg></button>
+            <p class="privacy-note"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;vertical-align:middle"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg><span data-ui="privacy">Your plan is processed securely in your browser.</span></p>
+        </aside>
+    </div>
+</div>
+
+<div class="setup-language-overlay" id="setupLanguageOverlay" role="dialog" aria-modal="true" aria-labelledby="setupLanguageTitle" hidden>
+    <section class="setup-language-popup">
+        <header>
+            <div><span data-ui="setupEyebrow">SETUP</span><h2 id="setupLanguageTitle" data-ui="changeLanguage">Change language</h2></div>
+            <button type="button" id="closeSetupLanguage" aria-label="Close language settings"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg></button>
+        </header>
+        <div class="language-options setup-language-options" id="languageOptions">
+            <button type="button" class="language-option" data-lang="en"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:8px"><path d="m5 8 6 6" /><path d="m4 14 6-6 2-3" /><path d="M2 5h12" /><path d="M7 2h1" /><path d="m22 22-5-10-5 10" /><path d="M14 18h6" /></svg><span class="language-option__label">English</span></button>
+            <button type="button" class="language-option" data-lang="hi"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:8px"><path d="m5 8 6 6" /><path d="m4 14 6-6 2-3" /><path d="M2 5h12" /><path d="M7 2h1" /><path d="m22 22-5-10-5 10" /><path d="M14 18h6" /></svg><span class="language-option__label" id="languageOptionHi"></span></button>
+            <button type="button" class="language-option" data-lang="kn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:8px"><path d="m5 8 6 6" /><path d="m4 14 6-6 2-3" /><path d="M2 5h12" /><path d="M7 2h1" /><path d="m22 22-5-10-5 10" /><path d="M14 18h6" /></svg><span class="language-option__label" id="languageOptionKn"></span></button>
+            <button type="button" class="language-option" data-lang="ta"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:8px"><path d="m5 8 6 6" /><path d="m4 14 6-6 2-3" /><path d="M2 5h12" /><path d="M7 2h1" /><path d="m22 22-5-10-5 10" /><path d="M14 18h6" /></svg><span class="language-option__label" id="languageOptionTa"></span></button>
+            <button type="button" class="language-option" data-lang="te"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:8px"><path d="m5 8 6 6" /><path d="m4 14 6-6 2-3" /><path d="M2 5h12" /><path d="M7 2h1" /><path d="m22 22-5-10-5 10" /><path d="M14 18h6" /></svg><span class="language-option__label" id="languageOptionTe"></span></button>
+            <button type="button" class="language-option" data-lang="ml"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:8px"><path d="m5 8 6 6" /><path d="m4 14 6-6 2-3" /><path d="M2 5h12" /><path d="M7 2h1" /><path d="m22 22-5-10-5 10" /><path d="M14 18h6" /></svg><span class="language-option__label" id="languageOptionMl"></span></button>
+        </div>
+        <section class="project-file-controls" aria-labelledby="projectFileTitle">
+            <h3 id="projectFileTitle"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:8px;vertical-align:middle"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" /></svg> Project file</h3>
+            <div class="project-file-controls__body">
+                <div style="margin-bottom: 12px;">
+                    <button type="button" id="goToProjectListBtn" style="width: 100%; background: #20372f; color: white; border: none; padding: 10px; border-radius: 6px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6" /><line x1="8" y1="12" x2="21" y2="12" /><line x1="8" y1="18" x2="21" y2="18" /><line x1="3" y1="6" x2="3.01" y2="6" /><line x1="3" y1="12" x2="3.01" y2="12" /><line x1="3" y1="18" x2="3.01" y2="18" /></svg> Go to My Projects
+                    </button>
+                </div>
+                <p>Keep the plan, working position, report, remedies, results, and drawing marks together.</p>
+                <label for="projectFileName">File name</label>
+                <div class="project-file-name"><input id="projectFileName" value="vastu-project" autocomplete="off"><span>.apzok</span></div>
+                <div class="project-file-actions">
+                    <button type="button" id="saveProjectButton"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" /><polyline points="17 21 17 13 7 13 7 21" /><polyline points="7 3 7 8 15 8" /></svg> Save project</button>
+                    <label id="loadProjectButton" for="projectFileInput" role="button" tabindex="0"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" /><line x1="12" y1="11" x2="12" y2="17" /><line x1="9" y1="14" x2="15" y2="14" /></svg> Load project</label>
+                </div>
+                <script>
+                    // Intercept the project file download as well
+                    document.getElementById('saveProjectButton')?.addEventListener('click', function() {
+                       // Small delay to let the web app process the file then intercept the download
+                    });
+                </script>
+                <input id="projectFileInput" type="file" accept=".apzok,application/json" hidden>
+                <p class="project-file-status" id="projectFileStatus" role="status" aria-live="polite"></p>
+                <div class="project-file-preparing" id="projectFilePreparing" role="status" aria-live="assertive" hidden>
+                    <span class="project-file-spinner" aria-hidden="true"></span>
+                    <span><strong>Preparing project…</strong><small>Collecting the plan, report, results, and drawing marks.</small></span>
+                </div>
+            </div>
+        </section>
+    </section>
+</div>
+
+<div class="analyzer-overlay" id="analyzerOverlay" aria-hidden="true">
+    <section class="analyzer-drawer report-builder" role="dialog" aria-modal="true" aria-labelledby="analyzerTitle">
+        <header class="analyzer-head">
+            <div><span class="eyebrow">VASTU ANALYSIS REPORT BUILDER</span><h2 id="analyzerTitle">Vastu Analysis Report</h2><p>Build a client-ready report from the current calibrated plan and Vastu pattern views.</p></div>
+            <button type="button" id="closeAnalyzerBtn" aria-label="Close advanced analyser"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
+        </header>
+        <div class="analyzer-project">
+            <label>Project name<input id="projectName" type="text" value="My Vastu Project" maxlength="60"></label>
+            <label>Client name <small>optional</small><input id="clientName" type="text" maxlength="60"></label>
+            <label>Property type<select id="propertyType"><option>Residence</option><option>Apartment</option><option>Office</option><option>Shop</option></select></label>
+            <label>Facing<select id="projectFacing"><option>North</option><option>East</option><option>South</option><option>West</option></select></label>
+            <label>Consultant name <small>optional</small><input id="consultantName" type="text" maxlength="60"></label>
+            <label>Report date<input id="reportDate" type="date"></label>
+            <label>Report type<select id="reportType"><option value="BASIC">Basic</option><option value="PROFESSIONAL" selected>Professional</option><option value="TECHNICAL">Technical</option></select></label>
+            <div class="report-head-actions">
+                <button type="button" id="refreshAnalysis"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;vertical-align:middle"><path d="M23 4v6h-6"></path><path d="M1 20v-6h6"></path><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg> Refresh Analysis</button>
+                <button type="button" id="previewAnalysis"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;vertical-align:middle"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg> Preview Report</button>
+                <button class="report-primary" type="button" id="runAdvancedAnalysis"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;vertical-align:middle"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg> Generate Report</button>
+            </div>
+        </div>
+        <div id="reportValidation" class="report-validation" role="status"></div>
+        <div class="analyzer-summary" id="analyzerSummary"></div>
+        <div class="report-content">
+            <section class="report-section" id="projectGeometry"></section>
+            <section class="report-section"><div class="analyzer-section-title"><div><span class="eyebrow">REPORT CONFIGURATION</span><h3>Pattern Views</h3></div><div><button type="button" class="text-button" id="selectAllPatterns">Select all</button><button type="button" class="text-button" id="clearAllPatterns">Clear all</button></div></div><div id="patternSelector" class="pattern-selector"></div></section>
+            <section class="report-section report-editor-section"><div class="analyzer-section-title report-editor-heading"><div><span class="eyebrow">CONSULTANT INTERPRETATION</span><h3>Consultant Findings</h3><p>Record clear observations, recommendations, and remedies for the client report.</p></div><button type="button" class="report-primary" id="addFinding"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> Add Finding</button></div><div id="findingEditor"></div><div id="findingsList" class="findings-list"></div></section>
+            <section class="report-section report-narrative-section"><div class="analyzer-section-title report-editor-heading"><div><span class="eyebrow">FACTUAL NARRATIVE</span><h3>Overall Consultant Summary</h3><p>Present the verified plan facts and professional conclusion in client-ready language.</p></div><div class="narrative-actions"><button type="button" class="text-button" id="autoDraft">Auto Draft</button><button type="button" class="text-button" id="polishAi">Polish with AI</button></div></div><div class="narrative-editor"><label for="overallSummary">Report narrative</label><textarea id="overallSummary" rows="7" aria-describedby="narrativeGuidance" placeholder="Write the overall assessment and supporting facts…"></textarea><div class="narrative-meta"><span id="narrativeGuidance">Use factual, concise language suitable for the client.</span><p class="report-local-status" id="localSaveStatus"><i class="fas fa-shield-halved" aria-hidden="true"></i> Saved locally ✓</p></div></div></section>
+            <section class="report-section report-preview-section"><div class="analyzer-section-title report-preview-heading"><div><span class="eyebrow">CLIENT DOCUMENT</span><h3>Report Preview</h3><p>Review the final page layout exactly as it will be presented to your client.</p></div><span class="preview-ready"><i class="fas fa-circle-check" aria-hidden="true"></i> Print-ready preview</span></div><div class="report-preview-frame"><div class="report-preview-toolbar"><span><i class="fas fa-file-lines" aria-hidden="true"></i> Client report</span><small>A4 document preview</small></div><div id="reportPreview" class="report-preview"></div></div></section>
+        </div>
+        <div id="androidSaveStatus" style="padding: 10px 28px; color: #2e7d32; font-weight: bold; font-size: 13px; display: none; text-align: center; border-top: 1px solid #eee; background: #f1f8e9;"></div>
+        <footer class="analyzer-footer">
+            <button type="button" id="backToPlanBtn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;vertical-align:middle"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg> Back</button>
+            <button type="button" id="footerPreview"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;vertical-align:middle"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg> Preview</button>
+            <button type="button" id="generatePdf"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;vertical-align:middle"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg> PDF</button>
+            <button type="button" id="printAnalysisBtn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;vertical-align:middle"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg> Print</button>
+        </footer>
+    </section>
+</div>
+
+<!-- Upload Popup (no drag-and-drop, no suggestions) -->
+<div id="popupOverlay" class="popup-overlay" style="display:none;">
+    <div class="popup">
+        <h3>Upload House Plan</h3>
+        <div class="input-row">
+            <div class="input-group upload-inline-actions">
+                <label for="fileInput">Select Image:</label>
+                <div class="upload-inline-actions__row">
+                    <input type="file" id="fileInput" accept="image/*">
+                    <button class="confirm-btn pdf-inline-btn" id="pdfToImageBtn" type="button">
+                        <i class="fas fa-file-pdf"></i>
+                        <span>Convert PDF to Image</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+        <!-- North Direction Selector -->
+        <div class="input-row">
+            <div class="input-group">
+                <label for="northDirection">North Facing:</label>
+                <select id="northDirection">
+                    <option value="north">North</option>
+                    <option value="east">East</option>
+                    <option value="west">West</option>
+                    <option value="south">South</option>
+                </select>
+            </div>
+        </div>
+        <!-- Floor feature question -->
+        <div class="input-row">
+            <div class="input-group">
+                <p class="info-text" id="floorFeatureLabel">Does this floor have a kitchen and a main door?</p>
+            </div>
+        </div>
+        <div class="input-row">
+            <div class="input-group">
+                <label for="floorFeatureSelect" id="floorFeatureDropdownLabel">Select Yes or No:</label>
+                <select id="floorFeatureSelect">
+                    <option value="yes">Yes</option>
+                    <option value="no">No</option>
+                </select>
+            </div>
+        </div>
+        <div class="vastu-defaults" id="floorFeatureInfo">
+            <p class="info-text" id="floorFeatureQuestion">This floor has a kitchen and a Main door.</p>
+            <div class="vastu-room-list" id="vastuRoomList"></div>
+        </div>
+        <div class="button-row">
+            <button class="cancel-btn" id="cancelUploadBtn">Cancel</button>
+            <button class="confirm-btn" id="confirmUploadBtn">Start</button>
+        </div>
+    </div>
+</div>
+
+<div id="pdfPopupOverlay" class="popup-overlay" style="display:none;">
+    <div class="popup">
+        <h3 id="pdfPopupTitle">Pdf to Image</h3>
+        <div class="input-row">
+            <div class="input-group">
+                <label for="pdfFileInput" id="pdfUploadLabel">Upload PDF:</label>
+                <input type="file" id="pdfFileInput" accept="application/pdf">
+            </div>
+        </div>
+        <div class="pdf-preview-list" id="pdfPreviewList"></div>
+        <div class="button-row">
+            <button class="confirm-btn" id="convertPdfBtn">Convert Image</button>
+            <button class="cancel-btn" id="closePdfPopupBtn">Close</button>
+        </div>
+    </div>
+</div>
+
+<form class="annotation-form" id="annotationForm">
+    <h3 id="addRoomTitle">Add Room Name</h3>
+    <input type="text" id="annotationText" placeholder="Enter room name (e.g., Kitchen, Bedroom)">
+    <div class="form-group">
+        <button id="addButton" type="submit">Add</button>
+        <button class="cancel" id="cancelButton" type="button">Cancel</button>
+    </div>
+</form>
+
+<div class="annotation-form" id="editAnnotationForm" style="display: none;">
+    <h3>Edit Room Name</h3>
+    <input type="text" id="editAnnotationText" placeholder="Edit room name">
+    <div class="form-group">
+        <button id="saveEditButton">Save</button>
+        <button class="cancel" id="cancelEditButton">Cancel</button>
+    </div>
+</div>
+
+<div class="manual-annotation-overlay" id="manualAnnotationOverlay">
+    <div class="manual-annotation-popup">
+        <h3><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:8px"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" /></svg> Add Room Names Manually</h3>
+        <p>We couldn't confidently identify all room names. Would you like to add them manually? Existing detected labels will stay in place.</p>
+        <div class="manual-annotation-actions">
+            <button id="manualAnnotationConfirm">Add Room Names</button>
+            <button class="cancel" id="manualAnnotationCancel">Maybe Later</button>
+        </div>
+    </div>
+</div>
+
+<div class="validation-popup" id="validationPopup">
+    <h3><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:8px"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" /><rect x="8" y="2" width="8" height="4" rx="1" ry="1" /><path d="M9 14l2 2 4-4" /></svg> Vastu Validation Results</h3>
+    <div id="validationResults"></div>
+    <div id="validationSaveStatus" style="padding: 10px; color: #2e7d32; font-weight: bold; font-size: 13px; display: none; text-align: center; background: #f1f8e9; border-radius: 5px; margin-bottom: 10px;"></div>
+    <div class="validation-buttons">
+        <button id="closeButton"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;vertical-align:middle"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg> Close</button>
+        <button id="downloadPdfButton"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;vertical-align:middle"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg> Download PDF</button>
+    </div>
+</div>
+
+<div class="pdf-progress-overlay" id="pdfProgressOverlay" role="status" aria-live="polite" aria-hidden="true">
+    <div class="pdf-progress-card">
+        <div class="pdf-progress-spinner" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /></svg></div>
+        <h3 id="pdfProgressTitle">Preparing your PDF</h3>
+        <p id="pdfProgressMessage">Please wait. Your download will start when the report is ready.</p>
+        <div class="pdf-progress-track" aria-hidden="true"><span></span></div>
+    </div>
+</div>
+
+<div class="ocr-progress" id="ocrProgress">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="fa-spin"><path d="M21 12a9 9 0 1 1-6.219-8.56" /></svg>
+    <h3>Scanning Text...</h3>
+    <div class="progress-bar">
+        <div class="progress-fill" id="progressFill"></div>
+    </div>
+    <div class="ocr-status" id="ocrStatus">Initializing OCR engine...</div>
+</div>
+
+<div class="ocr-alert-popup" id="ocrAlertPopup">
+    <h3><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:8px;vertical-align:middle"><circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" /></svg> 2D Plan Scan Preparation</h3>
+    <div class="ocr-alert-content">
+        Before starting scan, please ensure:<br><br>
+        1. The plan image is set to full size<br>
+        2. The image is enlarged and fits with the container<br>
+        3. All text is clearly visible and readable<br><br>
+        This will ensure the best Vastu results.
+    </div>
+    <div class="ocr-alert-buttons">
+        <button class="cancel" id="cancelScanBtn">Cancel</button>
+        <button class="scan" id="confirmScanBtn">Scan Now</button>
+    </div>
+</div>
+
+<div id="messagePopupOverlay" class="popup-overlay" style="display: none;">
+    <div class="message-popup">
+        <div class="message-popup__header">
+            <h3 id="messagePopupTitle"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:8px;vertical-align:middle"><circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" /></svg> Notice</h3>
+            <button id="messagePopupClose" aria-label="Close message">×</button>
+        </div>
+        <div id="messagePopupBody" class="message-popup__body"></div>
+        <div class="message-popup__actions">
+            <button id="messagePopupDismiss">OK</button>
+        </div>
+    </div>
+</div>
+
+<script src="vastu-placement-data.js"></script>
+<script src="vastu-remedies.js"></script>
+<script src="kannada-vastu-remedies.js"></script>
+<script src="telugu-vastu-remedies.js"></script>
+<script src="hindi-vastu-remedies.js"></script>
+<script src="tamil-vastu-remedies.js"></script>
+<script src="malyalam-vastu-remedies.js"></script>
+<script src="hindi-translations.js"></script>
+<script src="kannada-translations.js"></script>
+<script src="tamil-translations.js"></script>
+<script src="telugu-translations.js"></script>
+<script src="malayalam-translations.js"></script>
+<script src="image-asset-manager.js"></script>
+<script src="script.js"></script>
+<script src="advanced-analyzer.js"></script>
+<script src="professional-analyzer-geometry.js"></script>
+<script src="vastu-marma-engine.js"></script>
+<script src="professional-analyzer.js"></script>
+<script src="language-onboarding.js"></script>
+<script src="project-files.js"></script>
+</body>
+</html>
