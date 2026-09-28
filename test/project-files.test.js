@@ -6,14 +6,11 @@ const path = require('node:path');
 const root = path.resolve(__dirname, '..');
 const read = file => fs.readFileSync(path.join(root, file), 'utf8');
 
-test('project actions live in the Setup popup instead of workspace controls', () => {
+test('vastu projects page and project save controls are removed', () => {
   const html = read('index.html');
-  const setupStart = html.indexOf('id="setupLanguageOverlay"');
-  const projectStart = html.indexOf('id="projectFileTitle"');
-  const setupEnd = html.indexOf('id="analyzerOverlay"');
-  assert.ok(projectStart > setupStart && projectStart < setupEnd);
-  assert.equal(html.slice(html.indexOf('<aside class="settings-panel"'), setupStart).includes('id="projectFileTitle"'), false);
-  assert.match(html, /id="loadProjectButton" for="projectFileInput"/);
+  assert.equal(html.includes('id="projectListOverlay"'), false);
+  assert.equal(html.includes('id="projectFileTitle"'), false);
+  assert.equal(html.includes('id="goToProjectListBtn"'), false);
 });
 
 test('loaded completed projects resume at ready analysis and reveal pattern options', () => {

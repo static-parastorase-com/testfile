@@ -4,28 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Vastu Pro | Professional Plan Analysis</title>
-    <!-- Load layout styles before the optional third-party libraries so the
-         browser can paint the workspace correctly on the very first frame. -->
-    <link rel="stylesheet" href="style.css">
-    <link rel="stylesheet" href="professional-analyzer.css">
+    <meta name="description" content="Professional Vastu Plan Analysis with 16 zone compass and remedies.">
+    <meta property="og:title" content="Vastu Pro | Professional Plan Analysis">
+    <meta property="og:description" content="Professional Vastu Plan Analysis with 16 zone compass and remedies.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;family=Noto+Sans+Devanagari:wght@400;700&amp;family=Playfair+Display:wght@600;700&amp;display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="scripts/jspdf.umd.min.js"></script>
-    <script src="scripts/html2canvas.min.js"></script>
-    <script src="scripts/tesseract.min.js"></script>
-    <script src="scripts/pdf.min.js"></script>
-    <style>
-        /* Force body to be visible */
-        body, body.workspace-loading {
-            opacity: 1 !important;
-            visibility: visible !important;
-        }
-        .workspace-loading::before {
-            display: none !important;
-        }
-    </style>
 </head>
 <body class="workspace-loading">
 <!-- Star background -->
@@ -43,18 +28,6 @@
     </div>
     <div class="workspace-menu__content" id="workspaceMenuContent"></div>
 </section>
-<div id="projectListOverlay" class="project-list-overlay">
-    <header class="project-list-header">
-        <h2>Vastu Projects</h2>
-        <p>Select a project to continue or create a new one.</p>
-    </header>
-    <div id="projectItems" class="project-list-items">
-        <!-- Project cards injected here -->
-    </div>
-    <button id="createNewProjectBtn" class="fab-button fab-animated-glow" title="Create New Project">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
-    </button>
-</div>
 
 <div class="main-content">
     <div class="workspace-grid">
@@ -200,35 +173,6 @@
             <button type="button" class="language-option" data-lang="te"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:8px"><path d="m5 8 6 6" /><path d="m4 14 6-6 2-3" /><path d="M2 5h12" /><path d="M7 2h1" /><path d="m22 22-5-10-5 10" /><path d="M14 18h6" /></svg><span class="language-option__label" id="languageOptionTe"></span></button>
             <button type="button" class="language-option" data-lang="ml"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:8px"><path d="m5 8 6 6" /><path d="m4 14 6-6 2-3" /><path d="M2 5h12" /><path d="M7 2h1" /><path d="m22 22-5-10-5 10" /><path d="M14 18h6" /></svg><span class="language-option__label" id="languageOptionMl"></span></button>
         </div>
-        <section class="project-file-controls" aria-labelledby="projectFileTitle">
-            <h3 id="projectFileTitle"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:8px;vertical-align:middle"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" /></svg> Project file</h3>
-            <div class="project-file-controls__body">
-                <div style="margin-bottom: 12px;">
-                    <button type="button" id="goToProjectListBtn" style="width: 100%; background: #20372f; color: white; border: none; padding: 10px; border-radius: 6px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6" /><line x1="8" y1="12" x2="21" y2="12" /><line x1="8" y1="18" x2="21" y2="18" /><line x1="3" y1="6" x2="3.01" y2="6" /><line x1="3" y1="12" x2="3.01" y2="12" /><line x1="3" y1="18" x2="3.01" y2="18" /></svg> Go to My Projects
-                    </button>
-                </div>
-                <p>Keep the plan, working position, report, remedies, results, and drawing marks together.</p>
-                <label for="projectFileName">File name</label>
-                <div class="project-file-name"><input id="projectFileName" value="vastu-project" autocomplete="off"><span>.apzok</span></div>
-                <div class="project-file-actions">
-                    <button type="button" id="saveProjectButton"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" /><polyline points="17 21 17 13 7 13 7 21" /><polyline points="7 3 7 8 15 8" /></svg> Save project</button>
-                    <label id="loadProjectButton" for="projectFileInput" role="button" tabindex="0"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" /><line x1="12" y1="11" x2="12" y2="17" /><line x1="9" y1="14" x2="15" y2="14" /></svg> Load project</label>
-                </div>
-                <script>
-                    // Intercept the project file download as well
-                    document.getElementById('saveProjectButton')?.addEventListener('click', function() {
-                       // Small delay to let the web app process the file then intercept the download
-                    });
-                </script>
-                <input id="projectFileInput" type="file" accept=".apzok,application/json" hidden>
-                <p class="project-file-status" id="projectFileStatus" role="status" aria-live="polite"></p>
-                <div class="project-file-preparing" id="projectFilePreparing" role="status" aria-live="assertive" hidden>
-                    <span class="project-file-spinner" aria-hidden="true"></span>
-                    <span><strong>Preparing project…</strong><small>Collecting the plan, report, results, and drawing marks.</small></span>
-                </div>
-            </div>
-        </section>
     </section>
 </div>
 
@@ -427,25 +371,6 @@
     </div>
 </div>
 
-<script src="vastu-placement-data.js"></script>
-<script src="vastu-remedies.js"></script>
-<script src="kannada-vastu-remedies.js"></script>
-<script src="telugu-vastu-remedies.js"></script>
-<script src="hindi-vastu-remedies.js"></script>
-<script src="tamil-vastu-remedies.js"></script>
-<script src="malyalam-vastu-remedies.js"></script>
-<script src="hindi-translations.js"></script>
-<script src="kannada-translations.js"></script>
-<script src="tamil-translations.js"></script>
-<script src="telugu-translations.js"></script>
-<script src="malayalam-translations.js"></script>
-<script src="image-asset-manager.js"></script>
-<script src="script.js"></script>
-<script src="advanced-analyzer.js"></script>
-<script src="professional-analyzer-geometry.js"></script>
-<script src="vastu-marma-engine.js"></script>
-<script src="professional-analyzer.js"></script>
-<script src="language-onboarding.js"></script>
-<script src="project-files.js"></script>
+<script src="bundle.js"></script>
 </body>
 </html>

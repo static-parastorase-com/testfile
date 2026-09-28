@@ -3098,20 +3098,9 @@ body.project-load-animation #proWorkflowPanel { animation: project-load-panel .6
 .pro-workflow-panel { display: none; }
 body.plan-analysis-mode .pro-workflow-panel { display: block; }
 
-/* Project List Manager */
+/* Project List Manager (Removed) */
 .project-list-overlay {
-    position: fixed;
-    inset: 0;
-    z-index: 8000;
-    background: #f7f9f6;
-    display: flex;
-    flex-direction: column;
-    padding: 20px;
-    overflow-y: auto;
-}
-
-.project-list-overlay.hidden {
-    display: none;
+    display: none !important;
 }
 
 .project-list-header {

@@ -113,7 +113,7 @@
             const house=$('housePlan');if(house&&payload.plan.planFileUri){house.src=payload.plan.planFileUri;house.style.display='block';$('planEmptyState')?.classList.add('hidden');}
             if($('projectFileName'))$('projectFileName').value=safeName(name || payload.plan.projectName);
 
-            $('projectListOverlay').classList.add('hidden');
+            $('projectListOverlay')?.classList.add('hidden');
             document.body.classList.add('project-load-animation');
             window.dispatchEvent(new CustomEvent('vastu:open-workspace-controls',{detail:{target:'#proWorkflowPanel'}}));
             setTimeout(()=>document.body.classList.remove('project-load-animation'),1000);
@@ -185,14 +185,14 @@
 
         $('goToProjectListBtn')?.addEventListener('click', () => {
             if (window.Android && window.Android.getProjects) window.Android.getProjects();
-            $('projectListOverlay').classList.remove('hidden');
+            $('projectListOverlay')?.classList.remove('hidden');
             closeSetupPopup();
         });
 
         $('createNewProjectBtn')?.addEventListener('click', () => {
             currentProjectId = null;
             selectedProjectId = null;
-            $('projectListOverlay').classList.add('hidden');
+            $('projectListOverlay')?.classList.add('hidden');
             const house = $('housePlan');
             if (house && house.src && house.src.length > 50) {
                  window.location.reload();
