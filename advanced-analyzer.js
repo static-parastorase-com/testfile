@@ -82,6 +82,11 @@
         const saved=await repository.load('current-plan');
         if(saved)model={...model,...saved,settings:{...defaultSettings,...saved.settings}};
         renderAll();
+        const langSelect = $('#reportLanguageSelect');
+        if (langSelect) {
+            const curLang = (typeof window !== "undefined" && window.getCurrentAppLanguage?.()) || localStorage.getItem('vastuUiLanguage') || 'en';
+            langSelect.value = curLang;
+        }
         $('#analyzerOverlay').classList.add('open');
         $('#analyzerOverlay').setAttribute('aria-hidden','false');
         document.body.classList.add('report-builder-mode');
@@ -298,6 +303,96 @@
             writeHeading('Overall Summary',3);
             writeText(model.summary||buildAutoSummary(project,model.settings.selectedPatterns,model.findings), {size: 8.5, gap: 3});
 
+            // COMPREHENSIVE ARCHITECTURAL VASTU GUIDE FOR ALL ELEMENTS (PDF EXCLUSIVE)
+            // Automatically localized for user selected language: English (en), Kannada (kn), Hindi (hi), Tamil (ta), Telugu (te), Malayalam (ml)
+            const activeLang = (typeof window !== "undefined" && window.getCurrentAppLanguage?.())
+                || (function() {
+                    try { return localStorage.getItem("vastuUiLanguage"); } catch(e) { return null; }
+                })()
+                || (typeof currentLanguage !== "undefined" ? currentLanguage : "en");
+
+            const guide = (typeof window !== "undefined" && window.getVastuElementsGuide)
+                ? window.getVastuElementsGuide(activeLang)
+                : null;
+
+            if (guide && Array.isArray(guide.categories)) {
+                addPage();
+                const isIndic = ["hi", "kn", "ta", "te", "ml"].includes(activeLang);
+
+                if (isIndic && window.renderIndicVastuHeading && window.renderIndicVastuText) {
+                    const topBadge = window.renderIndicVastuHeading(guide.title, contentWidth, 1, 2.5);
+                    ensureSpace(topBadge.heightMm + 2);
+                    pdf.addImage(topBadge.dataUrl, "PNG", margin, y, contentWidth, topBadge.heightMm, undefined, "FAST");
+                    y += topBadge.heightMm + 2.5;
+
+                    const heading = window.renderIndicVastuHeading(guide.heading, contentWidth, 2, 2.5);
+                    ensureSpace(heading.heightMm + 2.5);
+                    pdf.addImage(heading.dataUrl, "PNG", margin, y, contentWidth, heading.heightMm, undefined, "FAST");
+                    y += heading.heightMm + 2.5;
+
+                    const desc = window.renderIndicVastuText(guide.description, contentWidth, { size: 8, color: [75, 85, 80] }, 2.5);
+                    ensureSpace(desc.heightMm + 4);
+                    pdf.addImage(desc.dataUrl, "PNG", margin, y, contentWidth, desc.heightMm, undefined, "FAST");
+                    y += desc.heightMm + 4;
+                } else {
+                    writeText(guide.title, { size: 8.5, style: "bold", color: [162, 120, 43], gap: 2 });
+                    writeHeading(guide.heading, 2);
+                    writeText(guide.description, { size: 8, color: [75, 85, 80], gap: 4 });
+                }
+
+                guide.categories.forEach((section) => {
+                    ensureSpace(18);
+                    if (isIndic && window.renderIndicVastuHeading) {
+                        const secHeading = window.renderIndicVastuHeading(section.category, contentWidth, 3, 2.5);
+                        ensureSpace(secHeading.heightMm + 2.5);
+                        pdf.addImage(secHeading.dataUrl, "PNG", margin, y, contentWidth, secHeading.heightMm, undefined, "FAST");
+                        y += secHeading.heightMm + 2.5;
+                    } else {
+                        writeHeading(section.category, 3);
+                    }
+
+                    section.items.forEach(item => {
+                        if (isIndic && window.renderIndicVastuCard) {
+                            const card = window.renderIndicVastuCard(item, guide.idealLabel || "Ideal:", contentWidth, 2.5);
+                            ensureSpace(card.heightMm + 2.2);
+                            pdf.addImage(card.dataUrl, "PNG", margin, y, contentWidth, card.heightMm, undefined, "FAST");
+                            y += card.heightMm + 2.2;
+                        } else {
+                            const ruleLines = pdf.splitTextToSize(item.rules, contentWidth - 7);
+                            const boxHeight = 7.5 + ruleLines.length * 3.4;
+                            ensureSpace(boxHeight + 2);
+
+                            pdf.setDrawColor(226, 232, 228);
+                            pdf.setLineWidth(0.2);
+                            pdf.setFillColor(252, 253, 251);
+                            pdf.roundedRect(margin, y, contentWidth, boxHeight, 1.2, 1.2, "FD");
+
+                            pdf.setFont("helvetica", "bold");
+                            pdf.setFontSize(8.5);
+                            pdf.setTextColor(35, 68, 56);
+                            pdf.text(item.name, margin + 3, y + 4.2);
+
+                            pdf.setFont("helvetica", "bold");
+                            pdf.setFontSize(7.5);
+                            pdf.setTextColor(162, 120, 43);
+                            pdf.text(guide.idealLabel ? guide.idealLabel + " " + item.zone : "Ideal: " + item.zone, margin + contentWidth - 3, y + 4.2, { align: "right" });
+
+                            pdf.setFont("helvetica", "normal");
+                            pdf.setFontSize(7.5);
+                            pdf.setTextColor(65, 75, 70);
+                            let lineY = y + 8;
+                            for (const line of ruleLines) {
+                                pdf.text(line, margin + 3, lineY);
+                                lineY += 3.4;
+                            }
+
+                            y += boxHeight + 2.5;
+                        }
+                    });
+                    y += 2;
+                });
+            }
+
             const pageCount=pdf.getNumberOfPages();
             for(let pageNumber=1;pageNumber<=pageCount;pageNumber+=1){
                 pdf.setPage(pageNumber);pdf.setFont('helvetica','normal');pdf.setFontSize(7.5);pdf.setTextColor(130,135,132);
@@ -345,5 +440,6 @@
                 }
             }, { passive: true });
         }
-        $('#advancedAnalyzerBtn')?.addEventListener('click',openAnalyzer);$$('[data-workspace-action]').forEach(button=>button.addEventListener('click',()=>{if(button.dataset.workspaceAction==='report')openAnalyzer();}));$('#closeAnalyzerBtn').addEventListener('click',closeAnalyzer);$('#backToPlanBtn').addEventListener('click',closeAnalyzer);$('#analyzerOverlay').addEventListener('click',event=>{if(event.target.id==='analyzerOverlay')closeAnalyzer();});$('#printAnalysisBtn').addEventListener('click',()=>window.print());$('#generatePdf').addEventListener('click',generatePdf);$('#runAdvancedAnalysis').addEventListener('click',async()=>{collectFields();try{await generateFullVastuReport('current-plan',model.settings);$('#reportPreview').scrollIntoView({behavior:'smooth'});}catch(error){renderValidation();}});['previewAnalysis','footerPreview'].forEach(id=>$(`#${id}`).addEventListener('click',()=>{$('#reportPreview').scrollIntoView({behavior:'smooth'});}));$('#refreshAnalysis').addEventListener('click',()=>{project=analysis();renderAll();});$('#selectAllPatterns').addEventListener('click',()=>{model.settings.selectedPatterns=PATTERNS.filter(item=>availability(item.type)).map(item=>item.type);renderPatterns();renderPreview();scheduleSave();});$('#clearAllPatterns').addEventListener('click',()=>{model.settings.selectedPatterns=[];renderPatterns();renderPreview();renderValidation();scheduleSave();});$('#patternSelector').addEventListener('change',event=>{const type=event.target.dataset.pattern;if(!type)return;model.settings.selectedPatterns=event.target.checked?[...new Set([...model.settings.selectedPatterns,type])]:model.settings.selectedPatterns.filter(item=>item!==type);renderPatterns();renderPreview();renderValidation();scheduleSave();});$('#addFinding').addEventListener('click',()=>renderFindingEditor({id:crypto.randomUUID?.()||String(Date.now()),targetType:'GENERAL',title:'',category:'NOTE',observation:'',includeInReport:true,createdAt:Date.now(),updatedAt:Date.now(),_new:true}));$('#findingEditor').addEventListener('click',event=>{if(event.target.closest('[data-cancel-finding]'))renderFindingEditor();});$('#findingEditor').addEventListener('submit',event=>{event.preventDefault();const data=new FormData(event.target),existing=model.findings.find(item=>item.id===event.target.dataset.id),now=Date.now(),finding={id:event.target.dataset.id,targetType:data.get('targetType'),targetId:data.get('targetId')||undefined,title:data.get('title'),category:String(data.get('category')).replaceAll(' ','_'),observation:data.get('observation'),explanation:data.get('explanation'),recommendation:data.get('recommendation'),remedy:data.get('remedy'),includeInReport:data.get('includeInReport')==='on',createdAt:existing?.createdAt||now,updatedAt:now};model.findings=existing?model.findings.map(item=>item.id===finding.id?finding:item):[...model.findings,finding];renderFindingEditor();renderFindings();renderPreview();scheduleSave();});$('#findingsList').addEventListener('click',event=>{const edit=event.target.closest('[data-edit-finding]'),remove=event.target.closest('[data-delete-finding]');if(edit)renderFindingEditor(model.findings.find(item=>item.id===edit.dataset.editFinding));if(remove){model.findings=model.findings.filter(item=>item.id!==remove.dataset.deleteFinding);renderFindings();renderPreview();scheduleSave();}});$('#autoDraft').addEventListener('click',()=>{$('#overallSummary').value=model.summary=buildAutoSummary(project,model.settings.selectedPatterns,model.findings);renderPreview();scheduleSave();});$('#polishAi').addEventListener('click',async()=>{const result=await new TemplateReportNarrativeService().generateNarrative({project,selectedPatterns:model.settings.selectedPatterns,findings:model.findings,meta:model});$('#overallSummary').value=model.summary=result.summary;renderPreview();scheduleSave();});$('.analyzer-project').addEventListener('input',collectFields);$('#overallSummary').addEventListener('input',()=>{model.summary=$('#overallSummary').value;renderPreview();scheduleSave();});document.addEventListener('keydown',event=>{if(event.key==='Escape'&&!$('#findingEditor form'))closeAnalyzer();});});
+        window.addEventListener('vastu:language-changed',event=>{const langSelect=$('#reportLanguageSelect');if(langSelect&&event.detail?.language)langSelect.value=event.detail.language;});
+        $('#advancedAnalyzerBtn')?.addEventListener('click',openAnalyzer);$$('[data-workspace-action]').forEach(button=>button.addEventListener('click',()=>{if(button.dataset.workspaceAction==='report')openAnalyzer();}));$('#closeAnalyzerBtn').addEventListener('click',closeAnalyzer);$('#backToPlanBtn').addEventListener('click',closeAnalyzer);$('#analyzerOverlay').addEventListener('click',event=>{if(event.target.id==='analyzerOverlay')closeAnalyzer();});$('#printAnalysisBtn').addEventListener('click',()=>window.print());$('#reportLanguageSelect')?.addEventListener('change',event=>{if(typeof setLanguage==='function')setLanguage(event.target.value);});$('#generatePdf').addEventListener('click',generatePdf);$('#runAdvancedAnalysis').addEventListener('click',async()=>{collectFields();try{await generateFullVastuReport('current-plan',model.settings);$('#reportPreview').scrollIntoView({behavior:'smooth'});}catch(error){renderValidation();}});['previewAnalysis','footerPreview'].forEach(id=>$(`#${id}`).addEventListener('click',()=>{$('#reportPreview').scrollIntoView({behavior:'smooth'});}));$('#refreshAnalysis').addEventListener('click',()=>{project=analysis();renderAll();});$('#selectAllPatterns').addEventListener('click',()=>{model.settings.selectedPatterns=PATTERNS.filter(item=>availability(item.type)).map(item=>item.type);renderPatterns();renderPreview();scheduleSave();});$('#clearAllPatterns').addEventListener('click',()=>{model.settings.selectedPatterns=[];renderPatterns();renderPreview();renderValidation();scheduleSave();});$('#patternSelector').addEventListener('change',event=>{const type=event.target.dataset.pattern;if(!type)return;model.settings.selectedPatterns=event.target.checked?[...new Set([...model.settings.selectedPatterns,type])]:model.settings.selectedPatterns.filter(item=>item!==type);renderPatterns();renderPreview();renderValidation();scheduleSave();});$('#addFinding').addEventListener('click',()=>renderFindingEditor({id:crypto.randomUUID?.()||String(Date.now()),targetType:'GENERAL',title:'',category:'NOTE',observation:'',includeInReport:true,createdAt:Date.now(),updatedAt:Date.now(),_new:true}));$('#findingEditor').addEventListener('click',event=>{if(event.target.closest('[data-cancel-finding]'))renderFindingEditor();});$('#findingEditor').addEventListener('submit',event=>{event.preventDefault();const data=new FormData(event.target),existing=model.findings.find(item=>item.id===event.target.dataset.id),now=Date.now(),finding={id:event.target.dataset.id,targetType:data.get('targetType'),targetId:data.get('targetId')||undefined,title:data.get('title'),category:String(data.get('category')).replaceAll(' ','_'),observation:data.get('observation'),explanation:data.get('explanation'),recommendation:data.get('recommendation'),remedy:data.get('remedy'),includeInReport:data.get('includeInReport')==='on',createdAt:existing?.createdAt||now,updatedAt:now};model.findings=existing?model.findings.map(item=>item.id===finding.id?finding:item):[...model.findings,finding];renderFindingEditor();renderFindings();renderPreview();scheduleSave();});$('#findingsList').addEventListener('click',event=>{const edit=event.target.closest('[data-edit-finding]'),remove=event.target.closest('[data-delete-finding]');if(edit)renderFindingEditor(model.findings.find(item=>item.id===edit.dataset.editFinding));if(remove){model.findings=model.findings.filter(item=>item.id!==remove.dataset.deleteFinding);renderFindings();renderPreview();scheduleSave();}});$('#autoDraft').addEventListener('click',()=>{$('#overallSummary').value=model.summary=buildAutoSummary(project,model.settings.selectedPatterns,model.findings);renderPreview();scheduleSave();});$('#polishAi').addEventListener('click',async()=>{const result=await new TemplateReportNarrativeService().generateNarrative({project,selectedPatterns:model.settings.selectedPatterns,findings:model.findings,meta:model});$('#overallSummary').value=model.summary=result.summary;renderPreview();scheduleSave();});$('.analyzer-project').addEventListener('input',collectFields);$('#overallSummary').addEventListener('input',()=>{model.summary=$('#overallSummary').value;renderPreview();scheduleSave();});document.addEventListener('keydown',event=>{if(event.key==='Escape'&&!$('#findingEditor form'))closeAnalyzer();});});
 }());

@@ -11,6 +11,7 @@ const savedUiLanguage = (() => {
     try { return window.localStorage.getItem('vastuUiLanguage'); } catch (_) { return null; }
 })();
 let currentLanguage = SUPPORTED_UI_LANGUAGES.includes(savedUiLanguage) ? savedUiLanguage : 'en';
+window.getCurrentAppLanguage = function() { return currentLanguage; };
 let annotations = [];
 let isDragging = false;
 let dragStartX, dragStartY;
@@ -3799,6 +3800,117 @@ async function generatePdfReport() {
             });
             yPosition += textHeight;
         });
+
+        // Architectural Vastu Reference Guide for all elements (PDF Exclusive)
+        if (typeof window.getVastuElementsGuide === 'function') {
+            const guide = window.getVastuElementsGuide(currentLanguage);
+            if (guide && Array.isArray(guide.categories)) {
+                pdf.addPage();
+                yPosition = 20;
+                const isIndic = ['hi', 'kn', 'ta', 'te', 'ml'].includes(currentLanguage);
+
+                if (isIndic && window.renderIndicVastuHeading && window.renderIndicVastuText) {
+                    const topBadge = window.renderIndicVastuHeading(guide.title, pdfWidth, 1, 2.5);
+                    pdf.addImage(topBadge.dataUrl, 'PNG', margin, yPosition, pdfWidth, topBadge.heightMm, undefined, 'FAST');
+                    yPosition += topBadge.heightMm + 2;
+
+                    const heading = window.renderIndicVastuHeading(guide.heading, pdfWidth, 2, 2.5);
+                    pdf.addImage(heading.dataUrl, 'PNG', margin, yPosition, pdfWidth, heading.heightMm, undefined, 'FAST');
+                    yPosition += heading.heightMm + 2.5;
+
+                    const desc = window.renderIndicVastuText(guide.description, pdfWidth, { size: 8, color: [75, 85, 80] }, 2.5);
+                    pdf.addImage(desc.dataUrl, 'PNG', margin, yPosition, pdfWidth, desc.heightMm, undefined, 'FAST');
+                    yPosition += desc.heightMm + 4;
+                } else {
+                    const titleHeight = drawLocalizedText(pdf, guide.title, margin, yPosition, {
+                        fontSize: 8.5,
+                        color: [162, 120, 43],
+                        maxWidth: pdfWidth
+                    });
+                    yPosition += titleHeight + 2;
+
+                    const headingHeight = drawLocalizedText(pdf, guide.heading, margin, yPosition, {
+                        fontSize: 14,
+                        color: [35, 68, 56],
+                        maxWidth: pdfWidth
+                    });
+                    yPosition += headingHeight + 2.5;
+
+                    const descHeight = drawLocalizedText(pdf, guide.description, margin, yPosition, {
+                        fontSize: 8,
+                        color: [75, 85, 80],
+                        maxWidth: pdfWidth
+                    });
+                    yPosition += descHeight + 4;
+                }
+
+                guide.categories.forEach(section => {
+                    if (yPosition > pdf.internal.pageSize.getHeight() - 25) {
+                        pdf.addPage();
+                        yPosition = 20;
+                    }
+
+                    if (isIndic && window.renderIndicVastuHeading) {
+                        const secHeading = window.renderIndicVastuHeading(section.category, pdfWidth, 3, 2.5);
+                        pdf.addImage(secHeading.dataUrl, 'PNG', margin, yPosition, pdfWidth, secHeading.heightMm, undefined, 'FAST');
+                        yPosition += secHeading.heightMm + 2.5;
+                    } else {
+                        const secHeight = drawLocalizedText(pdf, section.category, margin, yPosition, {
+                            fontSize: 11,
+                            color: [35, 68, 56],
+                            maxWidth: pdfWidth
+                        });
+                        yPosition += secHeight + 2.5;
+                    }
+
+                    section.items.forEach(item => {
+                        if (isIndic && window.renderIndicVastuCard) {
+                            const card = window.renderIndicVastuCard(item, guide.idealLabel || 'Ideal:', pdfWidth, 2.5);
+                            if (yPosition + card.heightMm > pdf.internal.pageSize.getHeight() - 15) {
+                                pdf.addPage();
+                                yPosition = 20;
+                            }
+                            pdf.addImage(card.dataUrl, 'PNG', margin, yPosition, pdfWidth, card.heightMm, undefined, 'FAST');
+                            yPosition += card.heightMm + 2.2;
+                        } else {
+                            const ruleLines = pdf.splitTextToSize(item.rules, pdfWidth - 7);
+                            const boxHeight = 7.5 + ruleLines.length * 3.4;
+                            if (yPosition + boxHeight > pdf.internal.pageSize.getHeight() - 15) {
+                                pdf.addPage();
+                                yPosition = 20;
+                            }
+
+                            pdf.setDrawColor(226, 232, 228);
+                            pdf.setLineWidth(0.2);
+                            pdf.setFillColor(252, 253, 251);
+                            pdf.roundedRect(margin, yPosition, pdfWidth, boxHeight, 1.2, 1.2, 'FD');
+
+                            pdf.setFont('helvetica', 'bold');
+                            pdf.setFontSize(8.5);
+                            pdf.setTextColor(35, 68, 56);
+                            pdf.text(item.name, margin + 3, yPosition + 4.2);
+
+                            pdf.setFont('helvetica', 'bold');
+                            pdf.setFontSize(7.5);
+                            pdf.setTextColor(162, 120, 43);
+                            pdf.text(`${guide.idealLabel || 'Ideal:'} ${item.zone}`, margin + pdfWidth - 3, yPosition + 4.2, { align: 'right' });
+
+                            pdf.setFont('helvetica', 'normal');
+                            pdf.setFontSize(7.5);
+                            pdf.setTextColor(65, 75, 70);
+                            let lineY = yPosition + 8;
+                            for (const line of ruleLines) {
+                                pdf.text(line, margin + 3, lineY);
+                                lineY += 3.4;
+                            }
+
+                            yPosition += boxHeight + 2.5;
+                        }
+                    });
+                    yPosition += 2;
+                });
+            }
+        }
 
         addPdfPageNumbering(pdf);
         // Save the PDF

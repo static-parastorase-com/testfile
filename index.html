@@ -13,7 +13,7 @@
     <link rel="stylesheet" href="professional-analyzer.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;family=Noto+Sans+Devanagari:wght@400;700&amp;family=Playfair+Display:wght@600;700&amp;display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;family=Noto+Sans+Devanagari:wght@400;600;700&amp;family=Noto+Sans+Kannada:wght@400;600;700&amp;family=Noto+Sans+Tamil:wght@400;600;700&amp;family=Noto+Sans+Telugu:wght@400;600;700&amp;family=Noto+Sans+Malayalam:wght@400;600;700&amp;family=Playfair+Display:wght@600;700&amp;display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="scripts/jspdf.umd.min.js"></script>
     <script src="scripts/html2canvas.min.js"></script>
@@ -218,7 +218,22 @@
         <div class="analyzer-summary" id="analyzerSummary"></div>
         <div class="report-content">
             <section class="report-section" id="projectGeometry"></section>
-            <section class="report-section"><div class="analyzer-section-title"><div><span class="eyebrow">REPORT CONFIGURATION</span><h3>Pattern Views</h3></div><div><button type="button" class="text-button" id="selectAllPatterns">Select all</button><button type="button" class="text-button" id="clearAllPatterns">Clear all</button></div></div><div id="patternSelector" class="pattern-selector"></div></section>
+            <section class="report-section"><div class="analyzer-section-title"><div><span class="eyebrow">REPORT CONFIGURATION</span><h3>Pattern Views & Language</h3></div><div><button type="button" class="text-button" id="selectAllPatterns">Select all</button><button type="button" class="text-button" id="clearAllPatterns">Clear all</button></div></div>
+            <div class="report-language-selector" style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 14px;margin-bottom:12px;background:#f6f9f7;border:1px solid #dbe6e0;border-radius:8px;">
+                <div style="display:flex;align-items:center;gap:8px;">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#234438" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                    <span style="font-size:13px;font-weight:600;color:#234438;">PDF Report & Vastu Guide Language:</span>
+                </div>
+                <select id="reportLanguageSelect" style="padding:6px 12px;font-size:13px;font-weight:600;color:#234438;background:#fff;border:1.5px solid #234438;border-radius:6px;cursor:pointer;outline:none;">
+                    <option value="en">English</option>
+                    <option value="kn">ಕನ್ನಡ (Kannada)</option>
+                    <option value="hi">हिन्दी (Hindi)</option>
+                    <option value="ta">தமிழ் (Tamil)</option>
+                    <option value="te">తెలుగు (Telugu)</option>
+                    <option value="ml">മലയാളം (Malayalam)</option>
+                </select>
+            </div>
+            <div id="patternSelector" class="pattern-selector"></div></section>
             <section class="report-section report-editor-section"><div class="analyzer-section-title report-editor-heading"><div><span class="eyebrow">CONSULTANT INTERPRETATION</span><h3>Consultant Findings</h3><p>Record clear observations, recommendations, and remedies for the client report.</p></div><button type="button" class="report-primary" id="addFinding"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> Add Finding</button></div><div id="findingEditor"></div><div id="findingsList" class="findings-list"></div></section>
             <section class="report-section report-narrative-section"><div class="analyzer-section-title report-editor-heading"><div><span class="eyebrow">FACTUAL NARRATIVE</span><h3>Overall Consultant Summary</h3><p>Present the verified plan facts and professional conclusion in client-ready language.</p></div><div class="narrative-actions"><button type="button" class="text-button" id="autoDraft">Auto Draft</button><button type="button" class="text-button" id="polishAi">Polish with AI</button></div></div><div class="narrative-editor"><label for="overallSummary">Report narrative</label><textarea id="overallSummary" rows="7" aria-describedby="narrativeGuidance" placeholder="Write the overall assessment and supporting facts…"></textarea><div class="narrative-meta"><span id="narrativeGuidance">Use factual, concise language suitable for the client.</span><p class="report-local-status" id="localSaveStatus"><i class="fas fa-shield-halved" aria-hidden="true"></i> Saved locally ✓</p></div></div></section>
             <section class="report-section report-preview-section"><div class="analyzer-section-title report-preview-heading"><div><span class="eyebrow">CLIENT DOCUMENT</span><h3>Report Preview</h3><p>Review the final page layout exactly as it will be presented to your client.</p></div><span class="preview-ready"><i class="fas fa-circle-check" aria-hidden="true"></i> Print-ready preview</span></div><div class="report-preview-frame"><div class="report-preview-toolbar"><span><i class="fas fa-file-lines" aria-hidden="true"></i> Client report</span><small>A4 document preview</small></div><div id="reportPreview" class="report-preview"></div></div></section>
@@ -396,6 +411,7 @@
 <script src="hindi-vastu-remedies.js"></script>
 <script src="tamil-vastu-remedies.js"></script>
 <script src="malyalam-vastu-remedies.js"></script>
+<script src="vastu-multilingual-guide.js"></script>
 <script src="hindi-translations.js"></script>
 <script src="kannada-translations.js"></script>
 <script src="tamil-translations.js"></script>
