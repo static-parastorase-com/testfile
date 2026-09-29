@@ -155,10 +155,10 @@
         if(!element)throw new Error('The selected plan canvas is unavailable.');
         // Match the export surface to the marked plan with comfortable framing matching live preview
         const viewport=reportBoundaryViewport();
-        const exportLongEdge=1000,viewportRatio=viewport?viewport.width/viewport.height:1;
+        const exportLongEdge=1400,viewportRatio=viewport?viewport.width/viewport.height:1;
         const exportWidth=Math.round(viewportRatio>=1?exportLongEdge:exportLongEdge*viewportRatio);
         const exportHeight=Math.round(viewportRatio>=1?exportLongEdge/viewportRatio:exportLongEdge);
-        const qualityScale=1.75;
+        const qualityScale=2;
         const captureElement=element.cloneNode(true);
         captureElement.style.position='fixed';
         captureElement.style.left='-100000px';
@@ -240,31 +240,40 @@
             for(let index=0;index<selected.length;index+=1){
                 addPage();
                 const item=selected[index];
-                writeText('PATTERN VIEW',{size:8.5,style:'bold',color:[162,120,43],gap:2});
-                writeHeading(item.page,2);
+                writeText('PATTERN VIEW · ' + item.page,{size:8.5,style:'bold',color:[162,120,43],gap:2});
+                if(item.description){
+                    writeText(item.description,{size:8,color:[75,85,80],gap:3});
+                }
                 const shot=await captureReportPattern(patternElements[index]);
-                // Decrease plan image size in PDF format: max width 124mm, max height 88mm
-                // This gives a balanced architectural presentation matching the small, crisp live edit preview
-                const maxPlanWidth = 124;
-                const maxPlanHeight = 88;
-                const ratio = Math.min(maxPlanWidth / shot.width, maxPlanHeight / shot.height);
+                
+                // Pattern image fills the full available page area
+                const planMargin = 8;
+                const availableWidth = pageWidth - planMargin * 2; // 194mm width on A4
+                const availableHeight = (pageHeight - 14) - y; // full remaining height down to bottom margin
+                const ratio = Math.min(availableWidth / shot.width, availableHeight / shot.height);
                 const width = shot.width * ratio, height = shot.height * ratio;
                 const imgX = (pageWidth - width) / 2;
+                const imgY = y + (availableHeight - height) / 2;
 
                 // Subtle architectural boundary frame
                 pdf.setDrawColor(218, 224, 220);
                 pdf.setLineWidth(0.3);
-                pdf.rect(imgX - 0.5, y - 0.5, width + 1, height + 1);
+                pdf.rect(imgX - 0.5, imgY - 0.5, width + 1, height + 1);
 
-                pdf.addImage(shot.data,'PNG',imgX,y,width,height,undefined,'FAST');
-                y+=height+5;
-                writeText(item.description, {size: 8.5, color: [70, 80, 75], gap: 3});
+                pdf.addImage(shot.data,'PNG',imgX,imgY,width,height,undefined,'FAST');
+                
                 const linked=linkedFindings(item.type);
-                if(linked.length)writeHeading('Consultant Findings',3);
-                linked.forEach(finding=>{
-                    writeText(`${finding.targetId||finding.title} — ${finding.category.replaceAll('_',' ')}`,{size: 8.5, style:'bold',gap:1});
-                    writeText(finding.observation,{size: 8, indent:3, gap: 2});
-                });
+                if(linked.length){
+                    addPage();
+                    writeText('PATTERN FINDINGS · ' + item.page,{size:8.5,style:'bold',color:[162,120,43],gap:2});
+                    writeHeading('Consultant Findings & Observations',3);
+                    linked.forEach(finding=>{
+                        writeText(`${finding.targetId||finding.title} — ${finding.category.replaceAll('_',' ')}`,{size:8.5,style:'bold',gap:1});
+                        writeText(finding.observation,{size:8,indent:3,gap:2});
+                        if(finding.explanation)writeText(`Explanation: ${finding.explanation}`,{size:8,indent:3,gap:1.5});
+                        if(finding.recommendation)writeText(`Recommendation: ${finding.recommendation}`,{size:8,indent:3,gap:1.5});
+                    });
+                }
             }
 
             addPage();
