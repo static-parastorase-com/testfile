@@ -1325,15 +1325,124 @@
             const previousView=compassView,previousOptions=clone(state.marmaOptions),previousOpacity=state.patternOpacityPercent;
             compassView=views[patternType]||'image';
             state.patternOpacityPercent=100;
-            state.marmaOptions={...state.marmaOptions,showBoundary:options.showBoundary!==false,showGrid:true,showLines:true,showPoints:true,showDevtaNames:true,debug:false,showNormalizedOnCanvas:false,showLineIds:false,showWorldCoordinates:false,showClassification:false};
+            state.marmaOptions={...state.marmaOptions,showBoundary:options.showBoundary!==false,showGrid:true,showLines:true,showPoints:true,showDevtaNames:true,showRadius:false,debug:false,showNormalizedOnCanvas:false,showLineIds:false,showWorldCoordinates:false,showClassification:false};
             renderGeometry();
             const svg=$('#proGeometry');
             const clean=svg.cloneNode(true);
-            clean.querySelectorAll('.pro-touch-target,.pro-vertex,.pro-cal-point,.pro-cal-line,.pro-point-label,.pro-marma-debug,.pro-devatas-handle').forEach(node=>node.remove());
+            clean.querySelectorAll('.pro-touch-target,.pro-vertex,.pro-cal-point,.pro-cal-line,.pro-point-label,.pro-marma-debug,.pro-devatas-handle,.pro-marma-selection-ring').forEach(node=>node.remove());
             clean.querySelectorAll('.pro-boundary-line').forEach(node=>{
-                node.style.strokeWidth='1px';
-                node.style.filter='none';
+                node.style.setProperty('stroke-width', '1.2px', 'important');
+                node.style.setProperty('stroke', '#c48b22', 'important');
+                node.style.setProperty('filter', 'none', 'important');
+                node.setAttribute('stroke-width', '1.2');
             });
+            clean.querySelectorAll('.pro-boundary-fill').forEach(node=>{
+                node.style.setProperty('fill', 'rgba(216,164,51,0.12)', 'important');
+                node.style.setProperty('stroke', 'none', 'important');
+            });
+            // Refine Marma points to delicate, crisp, small dots matching live edit preview
+            clean.querySelectorAll('.pro-marma-point').forEach(pointGroup=>{
+                const isOutside = pointGroup.classList.contains('is-outside');
+                pointGroup.querySelectorAll('circle:not(.pro-marma-core):not(.pro-marma-selection-ring)').forEach(circle=>{
+                    circle.setAttribute('r', '3.5');
+                    circle.style.setProperty('stroke-width', '0.75px', 'important');
+                    circle.style.setProperty('stroke', isOutside ? '#c92d35' : '#ffffff', 'important');
+                    circle.style.setProperty('fill', isOutside ? 'rgba(255,255,255,0.85)' : '#c92d35', 'important');
+                    circle.style.setProperty('fill-opacity', isOutside ? '0.85' : '0.92', 'important');
+                });
+                const core = pointGroup.querySelector('.pro-marma-core');
+                if (core) {
+                    core.setAttribute('r', '1.2');
+                    core.style.setProperty('fill', '#c92d35', 'important');
+                    core.style.setProperty('stroke', '#ffffff', 'important');
+                    core.style.setProperty('stroke-width', '0.5px', 'important');
+                }
+            });
+            clean.querySelectorAll('.pro-vansha-segment').forEach(node=>{
+                node.style.setProperty('stroke-width', '0.9px', 'important');
+                node.setAttribute('stroke-width', '0.9');
+            });
+            clean.querySelectorAll('.pro-vansha-segment--on_wall').forEach(node=>{
+                node.style.setProperty('stroke-width', '1.2px', 'important');
+                node.setAttribute('stroke-width', '1.2');
+            });
+            clean.querySelectorAll('.pro-marma-grid').forEach(node=>{
+                node.style.setProperty('stroke-width', '0.5px', 'important');
+                node.setAttribute('stroke-width', '0.5');
+            });
+            clean.querySelectorAll('.pro-marma-reference').forEach(node=>{
+                node.style.setProperty('stroke-width', '0.8px', 'important');
+                node.setAttribute('stroke-width', '0.8');
+                node.style.setProperty('stroke-dasharray', '5 3', 'important');
+            });
+            clean.querySelectorAll('.pro-marma-brahmasthan').forEach(node=>{
+                node.style.setProperty('stroke-width', '0.8px', 'important');
+                node.setAttribute('stroke-width', '0.8');
+                node.style.setProperty('fill', 'rgba(246,190,55,0.14)', 'important');
+            });
+            clean.querySelectorAll('.pro-marma-devta').forEach(node=>{
+                node.style.setProperty('font-size', '5.5px', 'important');
+                node.style.setProperty('stroke-width', '0.8px', 'important');
+                node.style.setProperty('paint-order', 'stroke', 'important');
+            });
+            // Decrease drawn pen strokes so they appear fine and crisp instead of thick bars
+            clean.querySelectorAll('.pro-annotation-stroke, .pro-annotations path').forEach(node=>{
+                const orig = Number(node.getAttribute('stroke-width')) || 5;
+                const neat = Math.max(1, Math.min(2.5, orig * 0.35));
+                node.style.setProperty('stroke-width', `${neat}px`, 'important');
+                node.setAttribute('stroke-width', String(neat));
+                node.style.setProperty('stroke-linecap', 'round', 'important');
+                node.style.setProperty('stroke-linejoin', 'round', 'important');
+            });
+            // Decrease measurement labels
+            clean.querySelectorAll('.pro-measure').forEach(node=>{
+                node.style.setProperty('font-size', '7px', 'important');
+                node.style.setProperty('font-weight', '600', 'important');
+                node.style.setProperty('stroke-width', '1.2px', 'important');
+                node.style.setProperty('paint-order', 'stroke', 'important');
+            });
+            // Decrease Devatas overlay
+            clean.querySelectorAll('.pro-devata-cell rect').forEach(node=>{
+                node.style.setProperty('stroke-width', '0.6px', 'important');
+                node.setAttribute('stroke-width', '0.6');
+            });
+            clean.querySelectorAll('.pro-devata-cell text').forEach(node=>{
+                node.style.setProperty('font-size', '5.5px', 'important');
+                node.style.setProperty('font-weight', '700', 'important');
+                node.style.setProperty('stroke-width', '0.7px', 'important');
+                node.style.setProperty('paint-order', 'stroke', 'important');
+            });
+            clean.querySelectorAll('.pro-devatas-frame').forEach(node=>{
+                node.style.setProperty('stroke-width', '1px', 'important');
+                node.setAttribute('stroke-width', '1');
+            });
+            // Decrease 16 zones and boundary bearings
+            clean.querySelectorAll('.pro-boundary-bearing circle').forEach(node=>{
+                node.setAttribute('r', '4');
+                node.style.setProperty('stroke-width', '0.8px', 'important');
+            });
+            clean.querySelectorAll('.pro-boundary-bearing text').forEach(node=>{
+                node.style.setProperty('font-size', '5px', 'important');
+            });
+            clean.querySelectorAll('.pro-bearing-degrees').forEach(node=>{
+                node.style.setProperty('font-size', '4px', 'important');
+            });
+            clean.querySelectorAll('.pro-boundary-zone rect').forEach(node=>{
+                node.style.setProperty('stroke-width', '0.7px', 'important');
+            });
+            clean.querySelectorAll('.pro-boundary-zone text').forEach(node=>{
+                node.style.setProperty('font-size', '5px', 'important');
+            });
+            clean.querySelectorAll('.pro-compass text').forEach(node=>{
+                node.style.setProperty('font-size', '6px', 'important');
+                node.style.setProperty('stroke-width', '0.8px', 'important');
+                node.style.setProperty('paint-order', 'stroke', 'important');
+            });
+            clean.querySelectorAll('.pro-compass path, .pro-compass line, .pro-compass circle').forEach(node=>{
+                node.style.setProperty('stroke-width', '0.8px', 'important');
+                node.setAttribute('stroke-width', '0.8');
+            });
+
             if(options.showDimensions===false)clean.querySelectorAll('.pro-measure').forEach(node=>node.remove());
             if(options.showCenter===false)clean.querySelectorAll('.pro-center').forEach(node=>node.remove());
             if(options.showBoundary===false)clean.querySelectorAll('.pro-boundary-line,.pro-boundary-fill').forEach(node=>node.remove());
@@ -1352,6 +1461,24 @@
 
             const rotation = state.planRotation || 0;
             const c = state.centroid || { x: imageSize.width / 2, y: imageSize.height / 2 };
+            // Decrease center marker
+            clean.querySelectorAll('.pro-center').forEach(node=>{
+                const circle = node.querySelector('circle');
+                if (circle) circle.setAttribute('r', '3');
+                const path = node.querySelector('path');
+                if (path) {
+                    path.setAttribute('d', `M${c.x - 7} ${c.y}h14M${c.x} ${c.y - 7}v14`);
+                    path.style.setProperty('stroke-width', '1px', 'important');
+                }
+                const text = node.querySelector('text');
+                if (text) {
+                    text.setAttribute('x', String(c.x + 6));
+                    text.setAttribute('y', String(c.y + 10));
+                    text.style.setProperty('font-size', '6.5px', 'important');
+                    text.style.setProperty('stroke-width', '1px', 'important');
+                    text.style.setProperty('paint-order', 'stroke', 'important');
+                }
+            });
             const innerMarkup = `<image href="${planImage}" x="0" y="0" width="${imageSize.width}" height="${imageSize.height}" preserveAspectRatio="none"/>${clean.innerHTML}`;
             clean.innerHTML = `<g transform="rotate(${rotation} ${c.x} ${c.y})">${innerMarkup}</g>`;
 

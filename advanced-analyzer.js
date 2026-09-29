@@ -100,12 +100,18 @@
     async function generateFullVastuReport(projectId,settings){model.settings={...model.settings,...settings};project=analysis();const errors=validate();if(errors.length)throw new Error(errors[0]);const patterns=model.settings.selectedPatterns.map(type=>({type,...renderPatternForReport(type)}));const narrative=await new TemplateReportNarrativeService().generateNarrative({project,selectedPatterns:model.settings.selectedPatterns,findings:model.findings,meta:model});model.summary=model.summary||narrative.summary;renderPreview();scheduleSave();return {projectId,settings:model.settings,patterns,findings:model.findings,narrative,createdAt:Date.now()};}
     window.generateFullVastuReport=generateFullVastuReport;
     function reportBoundaryViewport(){
-        const vertices=project?.outerBoundary?.vertices;
-        if(!Array.isArray(vertices)||vertices.length<3)return null;
+        const sourceWidth = Number(project?.imageSize?.width) || Number(project?.planImageWidth) || 1200;
+        const sourceHeight = Number(project?.imageSize?.height) || Number(project?.planImageHeight) || 800;
+        const vertices = project?.outerBoundary?.vertices;
+        if (!Array.isArray(vertices) || vertices.length < 3) {
+            return { viewBox: `0 0 ${sourceWidth} ${sourceHeight}`, width: sourceWidth, height: sourceHeight };
+        }
         const rotation = project?.planRotation || 0;
-        const c = project?.centroid || { x: 0, y: 0 };
-        const rawPoints=vertices.map(point=>({x:Number(point.x),y:Number(point.y)})).filter(point=>Number.isFinite(point.x)&&Number.isFinite(point.y));
-        if(rawPoints.length<3)return null;
+        const c = project?.centroid || { x: sourceWidth / 2, y: sourceHeight / 2 };
+        const rawPoints = vertices.map(point => ({ x: Number(point.x), y: Number(point.y) })).filter(p => Number.isFinite(p.x) && Number.isFinite(p.y));
+        if (rawPoints.length < 3) {
+            return { viewBox: `0 0 ${sourceWidth} ${sourceHeight}`, width: sourceWidth, height: sourceHeight };
+        }
 
         let points = rawPoints;
         if (rotation !== 0) {
@@ -122,30 +128,37 @@
             });
         }
 
-        const minX=Math.min(...points.map(point=>point.x)),maxX=Math.max(...points.map(point=>point.x));
-        const minY=Math.min(...points.map(point=>point.y)),maxY=Math.max(...points.map(point=>point.y));
-        const boundaryWidth=maxX-minX,boundaryHeight=maxY-minY;
-        if(boundaryWidth<=0||boundaryHeight<=0)return null;
-        const sourceWidth=Number(project?.imageSize?.width)||Number(project?.planImageWidth)||maxX;
-        const sourceHeight=Number(project?.imageSize?.height)||Number(project?.planImageHeight)||maxY;
-        const padding=Math.max(12,Math.min(boundaryWidth,boundaryHeight)*.06);
-        const x=minX-padding,y=minY-padding;
-        const width=maxX+padding-x,height=maxY+padding-y;
-        return {viewBox:`${x} ${y} ${width} ${height}`,width,height};
+        const minX = Math.min(...points.map(p => p.x)), maxX = Math.max(...points.map(p => p.x));
+        const minY = Math.min(...points.map(p => p.y)), maxY = Math.max(...points.map(p => p.y));
+        const boundaryWidth = maxX - minX, boundaryHeight = maxY - minY;
+        if (boundaryWidth <= 0 || boundaryHeight <= 0) {
+            return { viewBox: `0 0 ${sourceWidth} ${sourceHeight}`, width: sourceWidth, height: sourceHeight };
+        }
+
+        // If boundary covers a major portion of the plan, use the full plan so framing matches live edit preview exactly.
+        const widthCoverage = boundaryWidth / sourceWidth;
+        const heightCoverage = boundaryHeight / sourceHeight;
+        if (widthCoverage > 0.55 || heightCoverage > 0.55) {
+            return { viewBox: `0 0 ${sourceWidth} ${sourceHeight}`, width: sourceWidth, height: sourceHeight };
+        }
+
+        // Otherwise provide generous padding (25% of dimension, min 40px) so the plan is not zoomed into a tight cropped box
+        const padX = Math.max(40, boundaryWidth * 0.25);
+        const padY = Math.max(40, boundaryHeight * 0.25);
+        const x = Math.max(0, Math.min(minX - padX, sourceWidth - boundaryWidth - padX * 2));
+        const y = Math.max(0, Math.min(minY - padY, sourceHeight - boundaryHeight - padY * 2));
+        const width = Math.min(sourceWidth - x, boundaryWidth + padX * 2);
+        const height = Math.min(sourceHeight - y, boundaryHeight + padY * 2);
+        return { viewBox: `${x} ${y} ${width} ${height}`, width, height };
     }
     async function captureReportPattern(element){
         if(!element)throw new Error('The selected plan canvas is unavailable.');
-        // Match the export surface to the marked plan instead of placing every
-        // plan inside the same landscape rectangle. This removes the large blank
-        // bands that made portrait, square, and narrow plans unreadably small.
+        // Match the export surface to the marked plan with comfortable framing matching live preview
         const viewport=reportBoundaryViewport();
-        const exportLongEdge=1400,viewportRatio=viewport?viewport.width/viewport.height:1;
+        const exportLongEdge=1000,viewportRatio=viewport?viewport.width/viewport.height:1;
         const exportWidth=Math.round(viewportRatio>=1?exportLongEdge:exportLongEdge*viewportRatio);
         const exportHeight=Math.round(viewportRatio>=1?exportLongEdge/viewportRatio:exportLongEdge);
-        const qualityScale=2;
-        // Capture a real, correctly sized staging node. Applying the viewBox only
-        // inside html2canvas's onclone callback left some browsers with the SVG's
-        // old full-image layout, producing a tiny plan in a page-sized blank box.
+        const qualityScale=1.75;
         const captureElement=element.cloneNode(true);
         captureElement.style.position='fixed';
         captureElement.style.left='-100000px';
@@ -201,24 +214,24 @@
             let y=margin;
             const addPage=()=>{pdf.addPage('a4','portrait');y=margin;};
             const ensureSpace=height=>{if(y+height>bottom)addPage();};
-            const writeText=(text,{size=10,style='normal',color=[55,65,60],gap=3,indent=0}={})=>{
+            const writeText=(text,{size=9,style='normal',color=[55,65,60],gap=2.5,indent=0}={})=>{
                 const value=String(text??'').trim();
                 if(!value)return;
                 pdf.setFont('helvetica',style);pdf.setFontSize(size);pdf.setTextColor(...color);
                 const lines=pdf.splitTextToSize(value,contentWidth-indent);
-                const lineHeight=size*.42;
+                const lineHeight=size*.38;
                 for(const line of lines){ensureSpace(lineHeight);pdf.text(line,margin+indent,y);y+=lineHeight;}
                 y+=gap;
             };
-            const writeHeading=(text,level=2)=>writeText(text,{size:level===1?24:level===2?16:12,style:'bold',color:[35,68,56],gap:level===1?7:4});
-            const writeLabel=(label,value)=>writeText(`${label}: ${value||'—'}`,{size:10,style:'normal',gap:2});
+            const writeHeading=(text,level=2)=>writeText(text,{size:level===1?18:level===2?13:10.5,style:'bold',color:[35,68,56],gap:level===1?5:3});
+            const writeLabel=(label,value)=>writeText(`${label}: ${value||'—'}`,{size:9,style:'normal',gap:1.5});
 
             // Cover page: use native PDF text so names and report metadata remain
             // selectable, searchable, and accessible instead of becoming pixels.
-            y=72;
-            writeText('VASTU ANALYSIS REPORT',{size:11,style:'bold',color:[162,120,43],gap:7});
+            y=70;
+            writeText('VASTU ANALYSIS REPORT',{size:9.5,style:'bold',color:[162,120,43],gap:6});
             writeHeading(model.projectName,1);
-            writeText(`${model.propertyType} · ${model.facing} Facing`,{size:12,gap:12});
+            writeText(`${model.propertyType} · ${model.facing} Facing`,{size:10.5,gap:10});
             writeLabel('Client',model.clientName);
             writeLabel('Consultant',model.consultantName || window.panditDetails?.name || '');
             writeLabel('Report date',model.reportDate);
@@ -227,51 +240,58 @@
             for(let index=0;index<selected.length;index+=1){
                 addPage();
                 const item=selected[index];
-                writeText('PATTERN VIEW',{size:9,style:'bold',color:[162,120,43],gap:3});
+                writeText('PATTERN VIEW',{size:8.5,style:'bold',color:[162,120,43],gap:2});
                 writeHeading(item.page,2);
                 const shot=await captureReportPattern(patternElements[index]);
-                // Use the whole remaining printable page as the image box. The
-                // aspect ratio is retained, so plans are maximized without
-                // stretching floor-plan geometry or pattern/drawing overlays.
-                const availableImageHeight=bottom-y;
-                const ratio=Math.min(contentWidth/shot.width,availableImageHeight/shot.height);
-                const width=shot.width*ratio,height=shot.height*ratio;
-                pdf.addImage(shot.data,'PNG',(pageWidth-width)/2,y,width,height,undefined,'FAST');
+                // Decrease plan image size in PDF format: max width 124mm, max height 88mm
+                // This gives a balanced architectural presentation matching the small, crisp live edit preview
+                const maxPlanWidth = 124;
+                const maxPlanHeight = 88;
+                const ratio = Math.min(maxPlanWidth / shot.width, maxPlanHeight / shot.height);
+                const width = shot.width * ratio, height = shot.height * ratio;
+                const imgX = (pageWidth - width) / 2;
+
+                // Subtle architectural boundary frame
+                pdf.setDrawColor(218, 224, 220);
+                pdf.setLineWidth(0.3);
+                pdf.rect(imgX - 0.5, y - 0.5, width + 1, height + 1);
+
+                pdf.addImage(shot.data,'PNG',imgX,y,width,height,undefined,'FAST');
                 y+=height+5;
-                writeText(item.description);
+                writeText(item.description, {size: 8.5, color: [70, 80, 75], gap: 3});
                 const linked=linkedFindings(item.type);
                 if(linked.length)writeHeading('Consultant Findings',3);
                 linked.forEach(finding=>{
-                    writeText(`${finding.targetId||finding.title} — ${finding.category.replaceAll('_',' ')}`,{style:'bold',gap:1});
-                    writeText(finding.observation,{indent:3});
+                    writeText(`${finding.targetId||finding.title} — ${finding.category.replaceAll('_',' ')}`,{size: 8.5, style:'bold',gap:1});
+                    writeText(finding.observation,{size: 8, indent:3, gap: 2});
                 });
             }
 
             addPage();
-            writeText('CONSULTANT REPORT',{size:9,style:'bold',color:[162,120,43],gap:3});
+            writeText('CONSULTANT REPORT',{size:8.5,style:'bold',color:[162,120,43],gap:2});
             writeHeading('Findings, Recommendations & Remedies',2);
             const findings=model.findings.filter(item=>item.includeInReport);
-            if(!findings.length)writeText('No consultant findings were added for this project.');
+            if(!findings.length)writeText('No consultant findings were added for this project.', {size: 8.5});
             findings.forEach(finding=>{
-                writeText(`${finding.title} — ${finding.category.replaceAll('_',' ')}`,{style:'bold',gap:1});
-                writeText(finding.observation,{indent:3});
-                if(finding.explanation)writeText(`Explanation: ${finding.explanation}`,{indent:3});
+                writeText(`${finding.title} — ${finding.category.replaceAll('_',' ')}`,{size: 9, style:'bold',gap:1});
+                writeText(finding.observation,{size: 8.5, indent:3, gap: 1.5});
+                if(finding.explanation)writeText(`Explanation: ${finding.explanation}`,{size: 8, indent:3, gap: 1.5});
             });
             writeHeading('Consultant Recommendations',3);
             const recommendations=findings.filter(item=>item.recommendation);
-            if(!recommendations.length)writeText('No consultant recommendations added yet.');
-            recommendations.forEach((finding,index)=>writeText(`${index+1}. ${finding.recommendation}`,{indent:3}));
+            if(!recommendations.length)writeText('No consultant recommendations added yet.', {size: 8.5});
+            recommendations.forEach((finding,index)=>writeText(`${index+1}. ${finding.recommendation}`,{size: 8.5, indent:3, gap: 1.5}));
             const remedies=findings.filter(item=>item.remedy);
             if(remedies.length){
                 writeHeading('Remedies',3);
-                remedies.forEach((finding,index)=>writeText(`${index+1}. ${finding.remedy}`,{indent:3}));
+                remedies.forEach((finding,index)=>writeText(`${index+1}. ${finding.remedy}`,{size: 8.5, indent:3, gap: 1.5}));
             }
             writeHeading('Overall Summary',3);
-            writeText(model.summary||buildAutoSummary(project,model.settings.selectedPatterns,model.findings));
+            writeText(model.summary||buildAutoSummary(project,model.settings.selectedPatterns,model.findings), {size: 8.5, gap: 3});
 
             const pageCount=pdf.getNumberOfPages();
             for(let pageNumber=1;pageNumber<=pageCount;pageNumber+=1){
-                pdf.setPage(pageNumber);pdf.setFont('helvetica','normal');pdf.setFontSize(8);pdf.setTextColor(130,135,132);
+                pdf.setPage(pageNumber);pdf.setFont('helvetica','normal');pdf.setFontSize(7.5);pdf.setTextColor(130,135,132);
                 pdf.text(`Page ${pageNumber} of ${pageCount}`,pageWidth-margin,pageHeight-8,{align:'right'});
             }
             clearTimeout(saveTimer);

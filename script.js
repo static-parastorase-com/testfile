@@ -3609,14 +3609,14 @@ async function generatePdfReport() {
         // Add header
         const reportTitle = labels.validationTitle || 'Vastu Validation Results';
         drawLocalizedText(pdf, reportTitle, margin, yPosition, {
-            fontSize: 20,
+            fontSize: 16,
             color: [110, 120, 133]
         });
-        drawLocalizedText(pdf, 'https://www.apzok.com/online-2d-plan-vastu-check', margin, yPosition + 8, {
-            fontSize: 11,
+        drawLocalizedText(pdf, 'https://www.apzok.com/online-2d-plan-vastu-check', margin, yPosition + 7, {
+            fontSize: 9.5,
             color: [102, 102, 102]
         });
-        yPosition += 26;
+        yPosition += 20;
 
         // Capture the entire container with annotations and compass
         const imgData = await captureContainerAsImage();
@@ -3624,30 +3624,32 @@ async function generatePdfReport() {
             throw new Error('Failed to capture image');
         }
 
-        // Add the captured image to PDF
+        // Add the captured image to PDF with decreased, properly proportioned size
         const imgProps = pdf.getImageProperties(imgData);
-        const imgWidth = pdfWidth;
-        const imgHeight = (imgProps.height * imgWidth) / imgProps.width;
-
-        // Ensure the image fits on the page
-        const maxImageHeight = 120;
-        const finalImgHeight = Math.min(imgHeight, maxImageHeight);
-        const finalImgWidth = imgWidth * (finalImgHeight / imgHeight);
+        const maxPlanWidth = 124;
+        const maxPlanHeight = 85;
+        const ratio = Math.min(maxPlanWidth / imgProps.width, maxPlanHeight / imgProps.height);
+        const finalImgWidth = imgProps.width * ratio;
+        const finalImgHeight = imgProps.height * ratio;
         const imageX = margin + (pdfWidth - finalImgWidth) / 2;
 
+        pdf.setDrawColor(218, 224, 220);
+        pdf.setLineWidth(0.3);
+        pdf.rect(imageX - 0.5, yPosition - 0.5, finalImgWidth + 1, finalImgHeight + 1);
+
         pdf.addImage(imgData, 'JPEG', imageX, yPosition, finalImgWidth, finalImgHeight, undefined, 'FAST');
-        drawLocalizedText(pdf, 'Note: N = North, NE = Northeast, etc.', margin, yPosition + finalImgHeight + 5, {
-            fontSize: 9,
-            color: [0, 0, 0]
+        drawLocalizedText(pdf, 'Note: N = North, NE = Northeast, etc.', margin, yPosition + finalImgHeight + 4, {
+            fontSize: 8,
+            color: [90, 90, 90]
         });
-        yPosition += finalImgHeight + 15;
+        yPosition += finalImgHeight + 12;
 
         // Add validation results section header
         drawLocalizedText(pdf, reportTitle, margin, yPosition, {
-            fontSize: 16,
+            fontSize: 13,
             color: [110, 120, 133]
         });
-        yPosition += 8;
+        yPosition += 7;
 
         // Add validation results with remedies
         const resultsElement = document.getElementById('validationResults');

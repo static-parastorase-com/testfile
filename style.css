@@ -2699,12 +2699,12 @@ body:-ms-fullscreen .top-controls {
     border-radius: 3px;
 }
 
-/* Override Marma Point Styles */
+/* Refined Marma Point Styles */
 .pro-marma-point > circle:not(.pro-marma-selection-ring) {
-    stroke-width: 3 !important;
+    stroke-width: 1px;
 }
 .pro-marma-selection-ring {
-    stroke-width: 5 !important;
+    stroke-width: 2px;
 }
 
 .help-video-btn {
