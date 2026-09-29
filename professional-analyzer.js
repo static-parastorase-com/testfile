@@ -28,6 +28,7 @@
     let selectedVanshaLine = null;
     let drawingTool = null;
     let activeStroke = null;
+    let isErasing = false;
     const touchPointers = new Map();
     let pinchStart = null;
     let touchCandidate = null;
@@ -85,16 +86,16 @@
         document.querySelector('.canvas-panel').insertAdjacentHTML('beforeend', `<div class="pro-overlay" id="proOverlay" aria-hidden="true">
           <section class="pro-shell" aria-label="Plan scale and boundary workflow">
             <div class="pro-workspace" id="proWorkspace">
-              <div class="pro-toolbar"><button type="button" class="pro-primary pro-toolbar-upload" data-action="replace-plan" title="Upload" style="font-weight:700;background:#b78831;color:#fff;border-color:#b78831;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> Upload</button><button data-action="undo"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px"><path d="M3 7v6h6" /><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13" /></svg> Undo</button><button data-action="redo"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px"><path d="M21 7v6h-6" /><path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3l3 2.7" /></svg> Redo</button><button data-action="fit"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px"><path d="m15 3 6 6-6 6" /><path d="M9 21 3 15l6-6" /><path d="M21 9H9" /><path d="M3 15h12" /></svg> Fit</button><button data-action="zoom-in"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /><line x1="11" y1="8" x2="11" y2="14" /><line x1="8" y1="11" x2="14" y2="11" /></svg></button><button data-action="zoom-out"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /><line x1="8" y1="11" x2="14" y2="11" /></svg></button><div class="pro-draw-tools" aria-label="Plan drawing tools"><button type="button" class="pro-icon-button pro-pen-button" data-action="toggle-pen" title="Draw on this pattern" aria-label="Draw on this pattern" aria-expanded="false" aria-pressed="false"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" /></svg><span>Draw</span></button><button type="button" class="pro-icon-button" data-action="toggle-eraser" title="Erase drawing strokes" aria-label="Erase drawing strokes" aria-pressed="false"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.9-9.9c1-1 2.5-1 3.4 0l4.4 4.3c1 1 1 2.5 0 3.4L10.5 21" /><path d="M18 14l-4.2-4.3" /><path d="M22 21H6" /></svg></button><div class="pro-pen-popover" id="proPenPopover" hidden><div class="pro-pen-options"><strong>Pen color</strong><div class="pro-pen-colors" role="radiogroup" aria-label="Pen color">${penColors.map(color=>`<button type="button" data-action="pen-color" data-color="${color}" style="--pen-color:${color}" aria-label="Use ${color}" role="radio"></button>`).join('')}</div><label for="proPenSize"><span>Pointer size <i class="pro-pen-size-preview" id="proPenSizePreview" aria-hidden="true"></i></span><output id="proPenSizeOutput">5 px</output></label><div class="pro-pen-size-controls"><button type="button" data-action="pen-size-decrease" aria-label="Decrease pointer size">−</button><input id="proPenSize" type="range" min="1" max="24" step="1" value="5" aria-label="Pen pointer size"><button type="button" data-action="pen-size-increase" aria-label="Increase pointer size">+</button></div></div><button type="button" data-action="clear-drawing"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg> Clear this pattern</button></div></div><div class="pro-toolbar-tools" aria-label="Compass and voice controls"></div></div>
-              <main class="pro-main"><section class="pro-canvas-column"><div class="pro-instruction" id="proInstruction"></div><div class="pro-canvas-wrap" id="proCanvasWrap"><div class="pro-stage" id="proStage"><canvas id="proPlanCanvas"></canvas><svg id="proGeometry" aria-label="Interactive plan geometry"></svg></div><div class="pro-empty" id="proEmptyArea" style="cursor:pointer;"><svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:#b78831;margin-bottom:12px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" /></svg><strong style="font-size:24px;color:#20372f;margin-bottom:4px;">Upload Floor Plan &amp; Mark Boundary</strong><span style="font-size:13px;color:#5a6b63;max-width:380px;text-align:center;line-height:1.5;">Choose your architectural floor plan (JPG, PNG, or PDF) to start boundary marking and Vastu analysis.</span><label for="proFile" class="pro-primary" style="margin-top:16px;cursor:pointer;display:inline-flex;align-items:center;gap:8px;padding:12px 28px;border-radius:8px;background:#b78831;color:#fff;font-weight:700;font-size:14px;box-shadow:0 4px 14px rgba(183,136,49,0.35);"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg><span>Choose Floor Plan</span></label><input id="proFile" type="file" accept="image/*,application/pdf" hidden></div><div class="pro-marking-target" id="proMarkingTarget" aria-hidden="true"></div><div class="pro-drawing-cursor" id="proDrawingCursor" aria-hidden="true"></div><div class="pro-magnifier" id="proMagnifier" aria-hidden="true"><canvas width="120" height="120"></canvas><span></span></div><div class="pro-tilt-popup" id="proTiltPopup" hidden><div class="pro-tilt-card"><h3 id="proTiltTitle">Plot Tilt Direction</h3><p id="proTiltIntro">Enter the magnetic bearing of the property facing to align the plan.</p><div class="pro-tilt-input-wrap"><input id="plotTiltInput" type="number" step="0.1" placeholder="e.g. 217.5"><span>°</span></div><div class="pro-dialog-actions"><button type="button" class="pro-primary" data-action="apply-tilt">OK</button><button type="button" data-action="skip-tilt">Skip</button></div></div></div><button type="button" class="pro-close-boundary-fab" id="proCloseBoundaryFab" hidden><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:8px"><path d="m12 3 8 4.5v9L12 21l-8-4.5v-9L12 3z" /><path d="M12 21v-9" /><path d="m12 12 8-4.5" /><path d="m12 12-8-4.5" /></svg> <span>Close Boundary</span></button></div><div class="pro-calibration-popup" id="proCalibrationPopup" hidden><div class="pro-distance-fields"><label>${copy().feet}<input id="popupCalFeet" type="number" min="0" step="1" value="0"></label><label>${copy().inches}<input id="popupCalInches" type="number" min="0" max="11.99" step="0.01" value="0"></label></div><button type="button" class="pro-primary" id="popupSetScaleBtn">${copy().setPlanScale}</button></div></section></main><div class="pro-status" id="proStatus" role="status" aria-live="polite"></div>
-               <div class="pro-guide-dialog" id="proGuideDialog" role="dialog" aria-modal="true" aria-labelledby="proGuideTitle" hidden><div class="pro-guide-card"><span class="pro-eyebrow" id="proGuideStep"></span><div id="proGuideIconWrap"></div><h3 id="proGuideTitle"></h3><div id="proGuideCopy"></div><button type="button" class="pro-primary" data-action="accept-guide">OK, I understand</button></div></div>
-               <div class="pro-guide-dialog" id="proAddPointDialog" role="dialog" aria-modal="true" aria-labelledby="proAddPointTitle" hidden><div class="pro-guide-card pro-add-point-card"><svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:#b8892e;margin-bottom:20px"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" /><circle cx="12" cy="10" r="3" /></svg><h3 id="proAddPointTitle">Add a boundary point?</h3><p>Add one more adjustable point at this position for precise boundary alignment.</p><div class="pro-dialog-actions"><button type="button" data-action="cancel-add-point">Cancel</button><button type="button" class="pro-primary" data-action="confirm-add-point">Add point</button></div></div></div>
-             </div>
-           </section></div>`);
+              <div class="pro-toolbar"><button type="button" class="pro-primary pro-toolbar-upload" data-action="replace-plan" title="Upload" style="font-weight:700;background:#b78831;color:#fff;border-color:#b78831;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> Upload</button><button data-action="undo"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px"><path d="M3 7v6h6" /><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13" /></svg> Undo</button><button data-action="redo"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px"><path d="M21 7v6h-6" /><path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3l3 2.7" /></svg> Redo</button><button data-action="fit"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px"><path d="m15 3 6 6-6 6" /><path d="M9 21 3 15l6-6" /><path d="M21 9H9" /><path d="M3 15h12" /></svg> Fit</button><button data-action="zoom-in"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /><line x1="11" y1="8" x2="11" y2="14" /><line x1="8" y1="11" x2="14" y2="11" /></svg></button><button data-action="zoom-out"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /><line x1="8" y1="11" x2="14" y2="11" /></svg></button><div class="pro-draw-tools" aria-label="Plan drawing tools"><button type="button" class="pro-icon-button pro-pen-button" data-action="toggle-pen" title="Draw / Mark on plan" aria-label="Draw / Mark on plan" aria-expanded="false" aria-pressed="false"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" /></svg><span>Draw</span><span class="pro-pen-color-dot" id="proPenColorDot" style="display:inline-block;width:9px;height:9px;border-radius:50%;background:#e11d48;margin-left:4px;border:1.5px solid #fff;box-shadow:0 0 0 1px #9d7529;vertical-align:middle;"></span></button><button type="button" class="pro-icon-button" data-action="toggle-eraser" title="Erase marks or drawing strokes" aria-label="Erase marks or drawing strokes" aria-pressed="false"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.9-9.9c1-1 2.5-1 3.4 0l4.4 4.3c1 1 1 2.5 0 3.4L10.5 21" /><path d="M18 14l-4.2-4.3" /><path d="M22 21H6" /></svg></button><div class="pro-pen-popover" id="proPenPopover" hidden><div class="pro-pen-options"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;"><strong style="margin:0;color:#32473d;font-size:11px;font-weight:700;">Color Pen</strong><button type="button" data-action="close-pen-popover" style="padding:0 4px;border:none;background:transparent;color:#78857f;cursor:pointer;font-size:14px;line-height:1;" title="Close popup" aria-label="Close color pen popup">✕</button></div><div class="pro-pen-colors" role="radiogroup" aria-label="Pen color">${penColors.map(color=>`<button type="button" data-action="pen-color" data-color="${color}" style="--pen-color:${color}" aria-label="Use ${color}" role="radio"></button>`).join('')}</div><label for="proPenSize"><span>Pointer size <i class="pro-pen-size-preview" id="proPenSizePreview" aria-hidden="true"></i></span><output id="proPenSizeOutput">5 px</output></label><div class="pro-pen-size-controls"><button type="button" data-action="pen-size-decrease" aria-label="Decrease pointer size">−</button><input id="proPenSize" type="range" min="1" max="24" step="1" value="5" aria-label="Pen pointer size"><button type="button" data-action="pen-size-increase" aria-label="Increase pointer size">+</button></div></div><button type="button" data-action="clear-drawing"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg> Clear marks</button></div></div><div class="pro-toolbar-tools" aria-label="Compass and voice controls"></div></div>
+              <main class="pro-main"><section class="pro-canvas-column"><div class="pro-instruction" id="proInstruction"></div><div class="pro-canvas-wrap" id="proCanvasWrap"><div class="pro-stage" id="proStage"><canvas id="proPlanCanvas"></canvas><svg id="proGeometry" aria-label="Interactive plan geometry"></svg><svg id="proDrawingLayer" class="pro-drawing-layer" aria-label="Drawing marks on top layers"></svg></div><div class="pro-empty" id="proEmptyArea" style="cursor:pointer;"><svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:#b78831;margin-bottom:12px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" /></svg><strong style="font-size:24px;color:#20372f;margin-bottom:4px;">Upload Floor Plan &amp; Mark Boundary</strong><span style="font-size:13px;color:#5a6b63;max-width:380px;text-align:center;line-height:1.5;">Choose your architectural floor plan (JPG, PNG, or PDF) to start boundary marking and Vastu analysis.</span><button type="button" class="pro-primary" data-action="replace-plan" style="margin-top:16px;cursor:pointer;display:inline-flex;align-items:center;gap:8px;padding:12px 28px;border-radius:8px;background:#b78831;color:#fff;font-weight:700;font-size:14px;box-shadow:0 4px 14px rgba(183,136,49,0.35);border:none;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg><span>Choose Floor Plan</span></button></div><div class="pro-marking-target" id="proMarkingTarget" aria-hidden="true"></div><div class="pro-drawing-cursor" id="proDrawingCursor" aria-hidden="true"></div><div class="pro-magnifier" id="proMagnifier" aria-hidden="true"><canvas width="120" height="120"></canvas><span></span></div><div class="pro-tilt-popup" id="proTiltPopup" hidden><div class="pro-tilt-card"><h3 id="proTiltTitle">Plot Tilt Direction</h3><p id="proTiltIntro">Enter the magnetic bearing of the property facing to align the plan.</p><div class="pro-tilt-input-wrap"><input id="plotTiltInput" type="number" step="0.1" placeholder="e.g. 217.5"><span>°</span></div><div class="pro-dialog-actions"><button type="button" class="pro-primary" data-action="apply-tilt">OK</button><button type="button" data-action="skip-tilt">Skip</button></div></div></div><button type="button" class="pro-close-boundary-fab" id="proCloseBoundaryFab" hidden><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:8px"><path d="m12 3 8 4.5v9L12 21l-8-4.5v-9L12 3z" /><path d="M12 21v-9" /><path d="m12 12 8-4.5" /><path d="m12 12-8-4.5" /></svg> <span>Close Boundary</span></button></div><div class="pro-calibration-popup" id="proCalibrationPopup" hidden><div class="pro-distance-fields"><label>${copy().feet}<input id="popupCalFeet" type="number" min="0" step="1" value="0"></label><label>${copy().inches}<input id="popupCalInches" type="number" min="0" max="11.99" step="0.01" value="0"></label></div><button type="button" class="pro-primary" id="popupSetScaleBtn">${copy().setPlanScale}</button></div></section></main><div class="pro-status" id="proStatus" role="status" aria-live="polite"></div>
+                <div class="pro-guide-dialog" id="proGuideDialog" role="dialog" aria-modal="true" aria-labelledby="proGuideTitle" hidden><div class="pro-guide-card"><span class="pro-eyebrow" id="proGuideStep"></span><div id="proGuideIconWrap"></div><h3 id="proGuideTitle"></h3><div id="proGuideCopy"></div><button type="button" class="pro-primary" data-action="accept-guide">OK, I understand</button></div></div>
+                <div class="pro-guide-dialog" id="proAddPointDialog" role="dialog" aria-modal="true" aria-labelledby="proAddPointTitle" hidden><div class="pro-guide-card pro-add-point-card"><svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:#b8892e;margin-bottom:20px"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" /><circle cx="12" cy="10" r="3" /></svg><h3 id="proAddPointTitle">Add a boundary point?</h3><p>Add one more adjustable point at this position for precise boundary alignment.</p><div class="pro-dialog-actions"><button type="button" data-action="cancel-add-point">Cancel</button><button type="button" class="pro-primary" data-action="confirm-add-point">Add point</button></div></div></div>
+              </div>
+            </section></div>`);
         const sideSection = document.createElement('section');
         sideSection.className = 'workspace-menu__section pro-workflow-panel';
         sideSection.id = 'proWorkflowPanel';
-        sideSection.innerHTML = `<h2><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px"><polyline points="9 11 12 14 22 4" /><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" /></svg> ${copy().planAnalysis}</h2><aside class="pro-side" id="proSide"></aside>`;
+        sideSection.innerHTML = `<h2><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px"><polyline points="9 11 12 14 22 4" /><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> ${copy().planAnalysis}</h2><aside class="pro-side" id="proSide"></aside>`;
         $('#workspaceMenuContent')?.prepend(sideSection);
         ['#compassViewToggle', '#guideToggle'].forEach((selector) => {
             const element = $(selector);
@@ -114,10 +115,24 @@
         });
     }
 
+    function openHousePlanUploadPopup() {
+        if (typeof window.showUploadPopup === 'function') {
+            window.showUploadPopup();
+            return;
+        }
+        const popup = document.getElementById('popupOverlay');
+        if (popup) {
+            popup.style.display = 'flex';
+            popup.style.pointerEvents = 'auto';
+            popup.classList.add('active');
+            popup.removeAttribute('aria-hidden');
+        }
+    }
+
     function bindEvents() {
         window.addEventListener('vastu:language-changed', () => {
             const heading=$('#proWorkflowPanel h2');
-            if(heading) heading.innerHTML=`<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px"><polyline points="9 11 12 14 22 4" /><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" /></svg> ${copy().planAnalysis}`;
+            if(heading) heading.innerHTML=`<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px"><polyline points="9 11 12 14 22 4" /><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> ${copy().planAnalysis}`;
             renderInstruction(); renderSide();
             const guide=$('#proGuideDialog');
             if(guide && !guide.hidden) showGuide(guide.dataset.kind || 'scale');
@@ -127,13 +142,10 @@
             compassView = event.detail?.showImageCompass ? 'image' : 'standard';
             renderGeometry();
         });
-        $('#proFile').addEventListener('change', importPlan);
         $('#proEmptyArea')?.addEventListener('click', (e) => {
-            if (e.target.tagName !== 'INPUT') {
-                if (typeof showUploadPopup === 'function') showUploadPopup();
-                else if (window.showUploadPopup) window.showUploadPopup();
-                else document.getElementById('uploadButton')?.click();
-            }
+            e.preventDefault();
+            e.stopPropagation();
+            openHousePlanUploadPopup();
         });
         const canvasWrap = $('#proCanvasWrap');
         if (canvasWrap) {
@@ -161,10 +173,7 @@
         });
         $('#proSide').addEventListener('click', handleAction);
 
-        // Fix for unclickable buttons on mobile
-        document.querySelectorAll('.pro-toolbar button, .pro-side button, .pro-head button').forEach(btn => {
-            addPressListener(btn, handleAction);
-        });
+        // Delegated click on #proOverlay and #proSide handles toolbar and side buttons without duplicate event firing
 
         const syncDistance = (event) => {
             const id = event.target.id;
@@ -255,9 +264,16 @@
         wrap.addEventListener('pointerdown', pointerDown); wrap.addEventListener('pointermove', pointerMove); wrap.addEventListener('pointerup', pointerUp); wrap.addEventListener('pointercancel', pointerUp); wrap.addEventListener('pointerleave', hideMagnifier);
         wrap.addEventListener('contextmenu', openBoundaryPointMenu);
         wrap.addEventListener('pointerleave', hideDrawingCursor);
+        wrap.addEventListener('pointerenter', updateDrawingCursor);
         wrap.addEventListener('wheel', (e) => { if (!state.planFileUri) return; e.preventDefault(); const rect=wrap.getBoundingClientRect(); zoomAt(e.deltaY < 0 ? 1.12 : .89, e.clientX-rect.left, e.clientY-rect.top); }, { passive: false });
         document.addEventListener('pointerdown', (event) => {
-            if(drawingTool&&!event.target.closest('#proCanvasWrap, .pro-draw-tools')) setDrawingTool(null);
+            const popover = $('#proPenPopover');
+            if (popover && !popover.hidden) {
+                if (!event.target.closest('#proPenPopover, [data-action="toggle-pen"]')) {
+                    popover.hidden = true;
+                    syncDrawingTools();
+                }
+            }
         }, true);
         // Mobile browsers may discard a canvas backing store while the screen
         // is locked. The SVG boundary survives, which otherwise makes it look
@@ -305,7 +321,7 @@
             state.calibration=null; state.outerBoundary={vertices:[],isClosed:false}; state.currentWorkflowStep='CALIBRATE_SCALE'; state.boundaryState='EMPTY'; lastDrawnUri=''; recalculate();
         }
         open();
-        if (!state.planFileUri) { showStatus('Upload a floor plan first, then set its reference distance.', 'warning'); $('#proFile').click(); return; }
+        if (!state.planFileUri) { showStatus('Upload a floor plan first, then set its reference distance.', 'warning'); openHousePlanUploadPopup(); return; }
         if (tool === 'reference') {
             mutate(() => { state.calibration={draftPoints:[]}; state.outerBoundary={vertices:[],isClosed:false}; state.currentWorkflowStep='CALIBRATE_SCALE'; state.boundaryState='EMPTY'; recalculate(); });
             showGuide('scale');
@@ -318,17 +334,55 @@
         }
     }
     function close() { placeWorkspaceTools(false); $('#proOverlay').classList.remove('open'); $('#proOverlay').setAttribute('aria-hidden', 'true'); document.querySelector('.canvas-panel')?.classList.remove('plan-analysis-active'); document.body.classList.remove('plan-analysis-mode'); }
+    let lastActionTime = 0;
+    let lastActionElement = null;
+
     function handleAction(event) {
         const button = event.target.closest('[data-action]'); if (!button) return;
+        const now = Date.now();
+        if (lastActionElement === button && now - lastActionTime < 350) {
+            if (event.stopPropagation) event.stopPropagation();
+            return;
+        }
+        lastActionTime = now;
+        lastActionElement = button;
+        if (event.stopPropagation) event.stopPropagation();
+
         const action = button.dataset.action;
         if (action === 'close') close();
         else if (action === 'undo') undo(); else if (action === 'redo') redo(); else if (action === 'fit') fit(); else if (action === 'zoom-in') zoomAt(1.2); else if (action === 'zoom-out') zoomAt(.8);
-        else if(action==='toggle-pen')setDrawingTool(drawingTool==='pen'?null:'pen');
-        else if(action==='toggle-eraser')setDrawingTool(drawingTool==='eraser'?null:'eraser');
-        else if(action==='pen-color'){state.penColor=button.dataset.color;drawingTool='pen';$('#proPenPopover').hidden=true;syncDrawingTools();}
-        else if(action==='pen-size-decrease')setPointerSize(state.penSize-1);
-        else if(action==='pen-size-increase')setPointerSize(state.penSize+1);
-        else if(action==='clear-drawing'){const strokes=currentAnnotations();if(strokes.length&&confirm('Clear drawing marks from this pattern?'))mutate(()=>{state.annotations[compassView]=[];});}
+        else if (action === 'toggle-pen') {
+            const popover = $('#proPenPopover');
+            if (drawingTool !== 'pen' || (popover && popover.hidden)) {
+                setDrawingTool('pen', true);
+            } else {
+                setDrawingTool(null);
+            }
+        }
+        else if (action === 'close-pen-popover') {
+            const popover = $('#proPenPopover');
+            if (popover) popover.hidden = true;
+            syncDrawingTools();
+        }
+        else if (action === 'toggle-eraser') {
+            setDrawingTool(drawingTool === 'eraser' ? null : 'eraser');
+        }
+        else if (action === 'pen-color') {
+            state.penColor = button.dataset.color;
+            drawingTool = 'pen';
+            syncDrawingTools();
+            const cursor = $('#proDrawingCursor');
+            if (cursor) {
+                cursor.style.color = state.penColor;
+                cursor.style.borderColor = state.penColor;
+            }
+        }
+        else if (action === 'pen-size-decrease') setPointerSize(state.penSize - 1);
+        else if (action === 'pen-size-increase') setPointerSize(state.penSize + 1);
+        else if (action === 'clear-drawing') {
+            const strokes = currentAnnotations();
+            if (strokes.length && confirm('Clear all drawing marks from this plan?')) mutate(() => { setAnnotations([]); });
+        }
         else if (action === 'cancel-calibration') resetCalibrationPoints(); else if (action === 'close-boundary') closeBoundary(); else if (action === 'reopen') mutate(() => { state.outerBoundary.isClosed=false; state.boundaryState='EDITING'; state.currentWorkflowStep='MARK_BOUNDARY'; recalculate(); });
         else if (action === 'clear-boundary' && confirm('Clear all marked boundary points?')) mutate(() => { state.outerBoundary={vertices:[],isClosed:false}; state.boundaryState='EMPTY'; recalculate(); });
         else if (action === 'accept-guide') acceptGuide();
@@ -353,13 +407,7 @@
         else if (action === 'select-vansha') { selectedVanshaLine=button.dataset.vanshaId;selectedMarmaPoint=null;renderSide();renderGeometry(); }
         else if (action === 'select-16-zone') selectSixteenZone(button.dataset.zone);
         else if (action === 'replace-plan') {
-            if (typeof showUploadPopup === 'function') {
-                showUploadPopup();
-            } else if (window.showUploadPopup) {
-                window.showUploadPopup();
-            } else {
-                document.getElementById('uploadButton')?.click();
-            }
+            openHousePlanUploadPopup();
         }
     }
     function selectSixteenZone(zone) {
@@ -368,33 +416,102 @@
         requestAnimationFrame(()=>$('#proGeometry [data-zone="'+zone+'"]')?.focus());
     }
     function mutate(callback) { snapshot(); callback(); syncWorkspace(); }
-    function currentAnnotations(){state.annotations ||= {};return state.annotations[compassView] ||= [];}
+    function currentAnnotations(){
+        state.annotations ||= {};
+        if (Array.isArray(state.annotations)) return state.annotations;
+        if (!Array.isArray(state.annotations.strokes)) {
+            const list = [];
+            Object.keys(state.annotations).forEach(k => {
+                if (Array.isArray(state.annotations[k])) list.push(...state.annotations[k]);
+            });
+            state.annotations.strokes = list;
+        }
+        return state.annotations.strokes;
+    }
+    function setAnnotations(newStrokes){
+        state.annotations ||= {};
+        if (Array.isArray(state.annotations)) {
+            state.annotations = newStrokes;
+        } else {
+            state.annotations.strokes = newStrokes;
+            if (compassView) state.annotations[compassView] = newStrokes;
+        }
+    }
+    function ensureCanvasDimensions() {
+        const wrap = $('#proCanvasWrap');
+        if (!state.planFileUri) {
+            const w = Math.max(900, wrap ? wrap.clientWidth - 40 : 1200);
+            const h = Math.max(650, wrap ? wrap.clientHeight - 40 : 800);
+            if (imageSize.width <= 1 || imageSize.height <= 1) {
+                imageSize = { width: w, height: h };
+            }
+            const canvas = $('#proPlanCanvas');
+            if (canvas && (canvas.width <= 1 || canvas.height <= 1)) {
+                canvas.width = imageSize.width;
+                canvas.height = imageSize.height;
+                const ctx = canvas.getContext('2d');
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(0, 0, imageSize.width, imageSize.height);
+            }
+        }
+        const targetViewBox = `0 0 ${imageSize.width} ${imageSize.height}`;
+        $('#proGeometry')?.setAttribute('viewBox', targetViewBox);
+        $('#proDrawingLayer')?.setAttribute('viewBox', targetViewBox);
+        const stage = $('#proStage');
+        if (stage) {
+            stage.style.width = `${imageSize.width}px`;
+            stage.style.height = `${imageSize.height}px`;
+        }
+        if (transform.zoom === 1 && transform.panX === 0 && transform.panY === 0 && wrap && wrap.clientWidth > 50) {
+            const z = Math.min((wrap.clientWidth - 40) / imageSize.width, (wrap.clientHeight - 40) / imageSize.height);
+            transform = {
+                zoom: Math.min(1, Math.max(0.2, z)),
+                panX: Math.max(10, (wrap.clientWidth - imageSize.width * z) / 2),
+                panY: Math.max(10, (wrap.clientHeight - imageSize.height * z) / 2)
+            };
+            applyTransform();
+        }
+    }
     function setPointerSize(value){
         state.penSize=Math.min(24,Math.max(1,Number(value)));
         const range=$('#proPenSize');if(range)range.value=String(state.penSize);
         $('#proPenSizeOutput')?.replaceChildren(`${state.penSize} px`);
         $('#proPenSizePreview')?.style.setProperty('--preview-size',`${Math.max(3,state.penSize)}px`);
+        syncDrawingTools();
     }
-    function setDrawingTool(tool){
-        drawingTool=tool;
-        activeStroke=null;
-        const popover=$('#proPenPopover');if(popover)popover.hidden=!tool;
+    function setDrawingTool(tool, openPopup = true){
+        drawingTool = tool;
+        activeStroke = null;
+        isErasing = false;
+        ensureCanvasDimensions();
+        const popover = $('#proPenPopover');
+        if (popover) {
+            popover.hidden = (tool !== 'pen' || !openPopup);
+        }
         syncDrawingTools();
     }
     function syncDrawingTools(){
-        const ready=state.currentWorkflowStep==='READY_FOR_ANALYSIS';
-        $('#proPenPopover')?.classList.toggle('is-eraser',drawingTool==='eraser');
-        document.querySelectorAll('.pro-draw-tools>.pro-icon-button').forEach(button=>{
-            const isPen = button.dataset.action==='toggle-pen';
-            const selected=ready&&((isPen&&drawingTool==='pen')||(!isPen&&drawingTool==='eraser'));
-            button.disabled=!ready;
-            button.classList.toggle('active',selected);
-            button.setAttribute('aria-pressed',String(selected));
-            if(isPen)button.setAttribute('aria-expanded',String(selected&&!$('#proPenPopover')?.hidden));
+        const popover = $('#proPenPopover');
+        const isPopoverOpen = popover && !popover.hidden;
+        document.querySelectorAll('.pro-draw-tools>.pro-icon-button').forEach(button => {
+            const isPen = button.dataset.action === 'toggle-pen';
+            const selected = (isPen && drawingTool === 'pen') || (!isPen && drawingTool === 'eraser');
+            button.classList.toggle('active', selected);
+            button.setAttribute('aria-pressed', String(selected));
+            if (isPen) button.setAttribute('aria-expanded', String(selected && isPopoverOpen));
         });
-        document.querySelectorAll('.pro-pen-colors button').forEach(button=>button.setAttribute('aria-checked',String(button.dataset.color===state.penColor)));
-        $('#proCanvasWrap')?.classList.toggle('is-drawing',ready&&Boolean(drawingTool));
-        if(!ready||!drawingTool)hideDrawingCursor();
+        document.querySelectorAll('.pro-pen-colors button').forEach(button => {
+            button.setAttribute('aria-checked', String(button.dataset.color === state.penColor));
+        });
+        const dot = $('#proPenColorDot');
+        if (dot) dot.style.background = state.penColor || '#e11d48';
+        const range = $('#proPenSize');
+        if (range) range.value = String(state.penSize);
+        $('#proPenSizeOutput')?.replaceChildren(`${state.penSize} px`);
+        $('#proPenSizePreview')?.style.setProperty('--preview-size', `${Math.max(3, state.penSize)}px`);
+        const wrap = $('#proCanvasWrap');
+        if (wrap) wrap.classList.toggle('is-drawing', Boolean(drawingTool));
+        if (!drawingTool) hideDrawingCursor();
     }
 
     async function importPlan(event) {
@@ -462,6 +579,9 @@
         const targetViewBox = `0 0 ${imageSize.width} ${imageSize.height}`;
         if ($('#proGeometry').getAttribute('viewBox') !== targetViewBox) {
             $('#proGeometry').setAttribute('viewBox', targetViewBox);
+        }
+        if ($('#proDrawingLayer') && $('#proDrawingLayer').getAttribute('viewBox') !== targetViewBox) {
+            $('#proDrawingLayer').setAttribute('viewBox', targetViewBox);
         }
         const targetWidthStr = `${imageSize.width}px`;
         if ($('#proStage').style.width !== targetWidthStr) {
@@ -628,13 +748,43 @@
     function hideMagnifier(){ $('#proMagnifier')?.classList.remove('show'); $('#proMarkingTarget')?.classList.remove('show'); }
     function updateDrawingCursor(event){
         const cursor=$('#proDrawingCursor');
-        if(!cursor||!drawingTool||state.currentWorkflowStep!=='READY_FOR_ANALYSIS')return hideDrawingCursor();
-        const rect=$('#proCanvasWrap').getBoundingClientRect(),size=drawingTool==='eraser'?Math.max(20,state.penSize*4):Math.max(5,state.penSize*transform.zoom);
+        if(!cursor||!drawingTool)return hideDrawingCursor();
+        const rect=$('#proCanvasWrap').getBoundingClientRect(),size=drawingTool==='eraser'?Math.max(28,state.penSize*5):Math.max(6,state.penSize);
         cursor.style.width=`${size}px`;cursor.style.height=`${size}px`;cursor.style.left=`${event.clientX-rect.left}px`;cursor.style.top=`${event.clientY-rect.top}px`;
         cursor.className=`pro-drawing-cursor show is-${drawingTool}`;
-        cursor.style.borderColor=state.penColor;cursor.style.color=state.penColor;
+        cursor.style.borderColor=drawingTool==='eraser'?'#263b32':state.penColor;
+        cursor.style.color=state.penColor;
     }
     function hideDrawingCursor(){ $('#proDrawingCursor')?.classList.remove('show'); }
+
+    function eraseAtPoint(center, radius) {
+        let changed = false;
+        const zoom = transform.zoom || 1;
+
+        // Erase freehand drawing annotation strokes
+        const strokes = currentAnnotations();
+        const beforeCount = strokes.length;
+        const remaining = strokes.filter(stroke => {
+            if (!stroke.points || stroke.points.length === 0) return false;
+            const strokeRadius = (Number(stroke.size) || 5) / (2 * zoom);
+            const effRadius = radius + strokeRadius;
+            if (stroke.points.length === 1) {
+                return G.distancePx(stroke.points[0], center) > effRadius;
+            }
+            for (let i = 0; i < stroke.points.length - 1; i++) {
+                const proj = G.projectPointToSegment(center, stroke.points[i], stroke.points[i + 1]);
+                if (proj && proj.distance <= effRadius) return false;
+            }
+            return G.distancePx(stroke.points[stroke.points.length - 1], center) > effRadius;
+        });
+        if (remaining.length !== beforeCount) {
+            setAnnotations(remaining);
+            renderAnnotations();
+            changed = true;
+        }
+
+        return changed;
+    }
     function nearestVertex(point, radius=18/transform.zoom) { let best=null; let dist=radius; const all=state.currentWorkflowStep==='CALIBRATE_SCALE' ? state.calibration?.draftPoints || [] : state.outerBoundary.vertices; all.forEach(p=>{const d=G.distancePx(point,p);if(d<=dist){best=p;dist=d;}});return best; }
     function selectedPoint(){return state.calibration?.draftPoints?.find(point=>point.id===selectedVertex)||state.outerBoundary.vertices.find(point=>point.id===selectedVertex);}
     function nearestBoundaryEdge(point, radius=16/transform.zoom){
@@ -656,93 +806,208 @@
     function closeAddPointDialog(){pendingBoundaryPoint=null;$('#proAddPointDialog').hidden=true;}
     function addPendingBoundaryPoint(){if(!pendingBoundaryPoint)return closeAddPointDialog();const point=pendingBoundaryPoint;closeAddPointDialog();mutate(()=>{state.outerBoundary.vertices.splice(point.index+1,0,{id:id(),x:point.x,y:point.y});recalculate();});showStatus('Boundary point added. Drag it to fine-tune the alignment.','success');}
     function pointerDown(event) {
-        if (!state.planFileUri) return; const point=planPoint(event); const vertex=nearestVertex(point);
-        if(event.pointerType==='mouse'&&event.button===2){event.preventDefault();return;}
-        if(vertex&&(state.currentWorkflowStep==='CALIBRATE_SCALE'||state.outerBoundary.vertices.some(item=>item.id===vertex.id))){selectedVertex=vertex.id;draggingVertex=true;vertexDragStart={x:event.clientX,y:event.clientY,vertexId:vertex.id};snapshot();event.currentTarget.setPointerCapture(event.pointerId);renderGeometry();updateMagnifier(event);event.preventDefault();return;}
-        const edge=nearestBoundaryEdge(point);
-        if(!drawingTool&&edge&&event.pointerType==='touch'){startBoundaryHold(event,edge);event.currentTarget.setPointerCapture(event.pointerId);touchPointers.set(event.pointerId,{x:event.clientX,y:event.clientY});touchCandidate=null;event.preventDefault();return;}
-        if(event.pointerType==='touch'){
-            touchPointers.set(event.pointerId,{x:event.clientX,y:event.clientY});
-            if(touchPointers.size===2){
-                const [a,b]=[...touchPointers.values()],rect=event.currentTarget.getBoundingClientRect();
-                pinchStart={distance:Math.hypot(b.x-a.x,b.y-a.y),zoom:transform.zoom,panX:transform.panX,panY:transform.panY,centerX:(a.x+b.x)/2-rect.left,centerY:(a.y+b.y)/2-rect.top};
-                touchCandidate=null;activeStroke=null;event.currentTarget.setPointerCapture(event.pointerId);event.preventDefault();return;
+        if (!state.planFileUri && !drawingTool) return;
+        const point = planPoint(event);
+
+        if (drawingTool) {
+            if (event.pointerType === 'mouse' && event.button !== 0) return;
+            const popover = $('#proPenPopover');
+            if (popover && !popover.hidden) {
+                popover.hidden = true;
+                syncDrawingTools();
             }
-            if(!drawingTool&&(state.currentWorkflowStep==='CALIBRATE_SCALE'||state.currentWorkflowStep==='MARK_BOUNDARY')){
-                touchCandidate={pointerId:event.pointerId,startX:event.clientX,startY:event.clientY,point};
-                event.currentTarget.setPointerCapture(event.pointerId);event.preventDefault();return;
-            }
-            if(!drawingTool&&state.currentWorkflowStep==='READY_FOR_ANALYSIS'&&!vertex&&!event.target.closest?.('.pro-devatas-handle,.pro-devatas-handle-hit')){
-                panStart={x:event.clientX,y:event.clientY,panX:transform.panX,panY:transform.panY};
-                event.currentTarget.setPointerCapture(event.pointerId);event.currentTarget.classList.add('is-panning');event.preventDefault();return;
-            }
-        }
-        if (event.pointerType==='mouse' && event.button===1) {
-            panStart={x:event.clientX,y:event.clientY,panX:transform.panX,panY:transform.panY};
-            event.currentTarget.setPointerCapture(event.pointerId); event.currentTarget.classList.add('is-panning'); hideMagnifier(); event.preventDefault(); return;
-        }
-        if(drawingTool&&state.currentWorkflowStep==='READY_FOR_ANALYSIS'&&event.button===0){
             snapshot();
-            if(drawingTool==='pen'){
-                activeStroke={id:id(),color:state.penColor,size:state.penSize,points:[point]};currentAnnotations().push(activeStroke);
-            }else{
-                const radius=Math.max(10,state.penSize*2)/transform.zoom;
-                state.annotations[compassView]=currentAnnotations().filter(stroke=>!stroke.points.some(p=>G.distancePx(p,point)<=radius));
+            if (drawingTool === 'pen') {
+                activeStroke = { id: id(), color: state.penColor, size: state.penSize, points: [point] };
+                currentAnnotations().push(activeStroke);
+                renderAnnotations();
+            } else if (drawingTool === 'eraser') {
+                isErasing = true;
+                const eraserRadius = Math.max(16, (state.penSize * 5) / 2);
+                const planRadius = eraserRadius / (transform.zoom || 1);
+                eraseAtPoint(point, planRadius);
             }
-            event.currentTarget.setPointerCapture(event.pointerId);event.preventDefault();renderAnnotations();return;
+            try { event.currentTarget.setPointerCapture(event.pointerId); } catch(err) {}
+            event.preventDefault();
+            return;
         }
-        const resizeHandle=event.target.closest?.('.pro-devatas-handle,.pro-devatas-handle-hit');
+
+        const vertex = nearestVertex(point);
+        if (event.pointerType === 'mouse' && event.button === 2) { event.preventDefault(); return; }
+        if (vertex && (state.currentWorkflowStep === 'CALIBRATE_SCALE' || state.outerBoundary.vertices.some(item => item.id === vertex.id))) {
+            selectedVertex = vertex.id;
+            draggingVertex = true;
+            vertexDragStart = { x: event.clientX, y: event.clientY, vertexId: vertex.id };
+            snapshot();
+            event.currentTarget.setPointerCapture(event.pointerId);
+            renderGeometry();
+            updateMagnifier(event);
+            event.preventDefault();
+            return;
+        }
+        const edge = nearestBoundaryEdge(point);
+        if (edge && event.pointerType === 'touch') {
+            startBoundaryHold(event, edge);
+            event.currentTarget.setPointerCapture(event.pointerId);
+            touchPointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+            touchCandidate = null;
+            event.preventDefault();
+            return;
+        }
+        if (event.pointerType === 'touch') {
+            touchPointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+            if (touchPointers.size === 2) {
+                const [a, b] = [...touchPointers.values()], rect = event.currentTarget.getBoundingClientRect();
+                pinchStart = { distance: Math.hypot(b.x - a.x, b.y - a.y), zoom: transform.zoom, panX: transform.panX, panY: transform.panY, centerX: (a.x + b.x) / 2 - rect.left, centerY: (a.y + b.y) / 2 - rect.top };
+                touchCandidate = null;
+                activeStroke = null;
+                event.currentTarget.setPointerCapture(event.pointerId);
+                event.preventDefault();
+                return;
+            }
+            if (state.currentWorkflowStep === 'CALIBRATE_SCALE' || state.currentWorkflowStep === 'MARK_BOUNDARY') {
+                touchCandidate = { pointerId: event.pointerId, startX: event.clientX, startY: event.clientY, point };
+                event.currentTarget.setPointerCapture(event.pointerId);
+                event.preventDefault();
+                return;
+            }
+            if (state.currentWorkflowStep === 'READY_FOR_ANALYSIS' && !vertex && !event.target.closest?.('.pro-devatas-handle,.pro-devatas-handle-hit')) {
+                panStart = { x: event.clientX, y: event.clientY, panX: transform.panX, panY: transform.panY };
+                event.currentTarget.setPointerCapture(event.pointerId);
+                event.currentTarget.classList.add('is-panning');
+                event.preventDefault();
+                return;
+            }
+        }
+        if (event.pointerType === 'mouse' && event.button === 1) {
+            panStart = { x: event.clientX, y: event.clientY, panX: transform.panX, panY: transform.panY };
+            event.currentTarget.setPointerCapture(event.pointerId);
+            event.currentTarget.classList.add('is-panning');
+            hideMagnifier();
+            event.preventDefault();
+            return;
+        }
+        const resizeHandle = event.target.closest?.('.pro-devatas-handle,.pro-devatas-handle-hit');
         if (resizeHandle && state.centroid) {
-            const angle=G.normalizeAngle(state.northAngle+90)*Math.PI/180,dx=point.x-state.centroid.x,dy=point.y-state.centroid.y;
-            const local={x:dx*Math.cos(angle)+dy*Math.sin(angle),y:-dx*Math.sin(angle)+dy*Math.cos(angle)};
-            const devatas=resizeHandle.closest('.pro-devatas');
-            devatasResize={axis:resizeHandle.dataset.axis,startLocal:local,startWidth:state.devatasWidthPercent||100,startHeight:state.devatasHeightPercent||100,startPatternWidth:Number(devatas?.dataset.width)||1,startPatternHeight:Number(devatas?.dataset.height)||1};
-            event.currentTarget.setPointerCapture(event.pointerId); event.preventDefault(); return;
+            const angle = G.normalizeAngle(state.northAngle + 90) * Math.PI / 180, dx = point.x - state.centroid.x, dy = point.y - state.centroid.y;
+            const local = { x: dx * Math.cos(angle) + dy * Math.sin(angle), y: -dx * Math.sin(angle) + dy * Math.cos(angle) };
+            const devatas = resizeHandle.closest('.pro-devatas');
+            devatasResize = { axis: resizeHandle.dataset.axis, startLocal: local, startWidth: state.devatasWidthPercent || 100, startHeight: state.devatasHeightPercent || 100, startPatternWidth: Number(devatas?.dataset.width) || 1, startPatternHeight: Number(devatas?.dataset.height) || 1 };
+            event.currentTarget.setPointerCapture(event.pointerId);
+            event.preventDefault();
+            return;
         }
-        if (event.pointerType==='mouse' && event.shiftKey) { panStart={x:event.clientX,y:event.clientY,panX:transform.panX,panY:transform.panY}; event.currentTarget.setPointerCapture(event.pointerId); event.currentTarget.classList.add('is-panning'); hideMagnifier(); event.preventDefault(); return; }
-        if (state.currentWorkflowStep==='CALIBRATE_SCALE') {
-            const draft=state.calibration?.draftPoints || []; if(draft.length>=2) return;
-            mutate(()=>{ state.calibration={draftPoints:[...draft,{id:id(),x:point.x,y:point.y}]}; });
-            if(draft.length===1&&matchMedia('(min-width: 601px)').matches){
-                window.dispatchEvent(new CustomEvent('vastu:open-workspace-controls',{detail:{target:'#proWorkflowPanel'}}));
+        if (event.pointerType === 'mouse' && event.shiftKey) {
+            panStart = { x: event.clientX, y: event.clientY, panX: transform.panX, panY: transform.panY };
+            event.currentTarget.setPointerCapture(event.pointerId);
+            event.currentTarget.classList.add('is-panning');
+            hideMagnifier();
+            event.preventDefault();
+            return;
+        }
+        if (state.currentWorkflowStep === 'CALIBRATE_SCALE') {
+            const draft = state.calibration?.draftPoints || [];
+            if (draft.length >= 2) return;
+            mutate(() => { state.calibration = { draftPoints: [...draft, { id: id(), x: point.x, y: point.y }] }; });
+            if (draft.length === 1 && matchMedia('(min-width: 601px)').matches) {
+                window.dispatchEvent(new CustomEvent('vastu:open-workspace-controls', { detail: { target: '#proWorkflowPanel' } }));
             }
             return;
         }
-        if (state.currentWorkflowStep==='MARK_BOUNDARY' && !state.outerBoundary.isClosed) {
-            const now=Date.now(); const near=nearestVertex(point); const doubleTap=now-lastTap.time<DOUBLE_TAP_MS && near && (near.id===state.outerBoundary.vertices[0]?.id || near.id===state.outerBoundary.vertices.at(-1)?.id);
-            if(doubleTap){closeBoundary();lastTap={time:0,vertex:null};return;}
-            if(near){lastTap={time:now,vertex:near.id};return;}
-            const vertexId=id();mutate(()=>{state.outerBoundary.vertices.push({id:vertexId,x:point.x,y:point.y});state.boundaryState='DRAWING';});lastTap={time:now,vertex:vertexId};
+        if (state.currentWorkflowStep === 'MARK_BOUNDARY' && !state.outerBoundary.isClosed) {
+            const now = Date.now();
+            const near = nearestVertex(point);
+            const doubleTap = now - lastTap.time < DOUBLE_TAP_MS && near && (near.id === state.outerBoundary.vertices[0]?.id || near.id === state.outerBoundary.vertices.at(-1)?.id);
+            if (doubleTap) { closeBoundary(); lastTap = { time: 0, vertex: null }; return; }
+            if (near) { lastTap = { time: now, vertex: near.id }; return; }
+            const vertexId = id();
+            mutate(() => { state.outerBoundary.vertices.push({ id: vertexId, x: point.x, y: point.y }); state.boundaryState = 'DRAWING'; });
+            lastTap = { time: now, vertex: vertexId };
         }
     }
     function pointerMove(event) {
-        if(boundaryHold?.pointerId===event.pointerId&&Math.hypot(event.clientX-boundaryHold.startX,event.clientY-boundaryHold.startY)>10)cancelBoundaryHold();
-        if(event.pointerType==='touch'&&touchPointers.has(event.pointerId)){
-            touchPointers.set(event.pointerId,{x:event.clientX,y:event.clientY});
-            if(touchCandidate&&touchCandidate.pointerId===event.pointerId&&Math.hypot(event.clientX-touchCandidate.startX,event.clientY-touchCandidate.startY)>10)touchCandidate=null;
-            if(pinchStart&&touchPointers.size>=2){
-                const [a,b]=[...touchPointers.values()],distance=Math.max(1,Math.hypot(b.x-a.x,b.y-a.y)),next=Math.min(8,Math.max(.08,pinchStart.zoom*distance/pinchStart.distance));
-                const rect=event.currentTarget.getBoundingClientRect(),centerX=(a.x+b.x)/2-rect.left,centerY=(a.y+b.y)/2-rect.top,ratio=next/pinchStart.zoom;
-                transform.zoom=next;transform.panX=centerX-(pinchStart.centerX-pinchStart.panX)*ratio;transform.panY=centerY-(pinchStart.centerY-pinchStart.panY)*ratio;applyTransform();event.preventDefault();return;
+        if (boundaryHold?.pointerId === event.pointerId && Math.hypot(event.clientX - boundaryHold.startX, event.clientY - boundaryHold.startY) > 10) cancelBoundaryHold();
+        if (event.pointerType === 'touch' && touchPointers.has(event.pointerId)) {
+            touchPointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+            if (touchCandidate && touchCandidate.pointerId === event.pointerId && Math.hypot(event.clientX - touchCandidate.startX, event.clientY - touchCandidate.startY) > 10) touchCandidate = null;
+            if (pinchStart && touchPointers.size >= 2) {
+                const [a, b] = [...touchPointers.values()], distance = Math.max(1, Math.hypot(b.x - a.x, b.y - a.y)), next = Math.min(8, Math.max(.08, pinchStart.zoom * distance / pinchStart.distance));
+                const rect = event.currentTarget.getBoundingClientRect(), centerX = (a.x + b.x) / 2 - rect.left, centerY = (a.y + b.y) / 2 - rect.top, ratio = next / pinchStart.zoom;
+                transform.zoom = next; transform.panX = centerX - (pinchStart.centerX - pinchStart.panX) * ratio; transform.panY = centerY - (pinchStart.centerY - pinchStart.panY) * ratio; applyTransform(); event.preventDefault(); return;
             }
         }
         updateDrawingCursor(event);
         updateMagnifier(event);
-        if(activeStroke){const point=planPoint(event),last=activeStroke.points.at(-1);if(G.distancePx(last,point)>=1/transform.zoom){activeStroke.points.push(point);renderAnnotations();}return;}
+        if (activeStroke) {
+            const point = planPoint(event), last = activeStroke.points[activeStroke.points.length - 1];
+            if (!last || G.distancePx(last, point) >= Math.max(0.5, 0.5 / (transform.zoom || 1))) {
+                activeStroke.points.push(point);
+                renderAnnotations();
+            }
+            return;
+        }
+        if (drawingTool === 'eraser' && isErasing) {
+            const point = planPoint(event);
+            const eraserRadius = Math.max(14, (state.penSize * 5) / 2);
+            const planRadius = eraserRadius / (transform.zoom || 1);
+            eraseAtPoint(point, planRadius);
+            return;
+        }
         if (devatasResize && state.centroid) {
-            const point=planPoint(event),angle=G.normalizeAngle(state.northAngle+90)*Math.PI/180,dx=point.x-state.centroid.x,dy=point.y-state.centroid.y;
-            const local={x:dx*Math.cos(angle)+dy*Math.sin(angle),y:-dx*Math.sin(angle)+dy*Math.cos(angle)};
-            if(devatasResize.axis.includes('x')) state.devatasWidthPercent=Math.min(300,Math.max(25,devatasResize.startWidth*Math.abs(local.x)/Math.max(Math.abs(devatasResize.startLocal.x),1)));
-            if(devatasResize.axis.includes('y')) state.devatasHeightPercent=Math.min(300,Math.max(25,devatasResize.startHeight*Math.abs(local.y)/Math.max(Math.abs(devatasResize.startLocal.y),1)));
-            const sizeRange=$('#compassSizeRange');if(sizeRange){const value=Math.round(Math.max(state.devatasWidthPercent,state.devatasHeightPercent));sizeRange.value=String(value);sizeRange.previousElementSibling?.querySelector('output')?.replaceChildren(`W ${Math.round(state.devatasWidthPercent)}% · H ${Math.round(state.devatasHeightPercent)}%`);}
+            const point = planPoint(event), angle = G.normalizeAngle(state.northAngle + 90) * Math.PI / 180, dx = point.x - state.centroid.x, dy = point.y - state.centroid.y;
+            const local = { x: dx * Math.cos(angle) + dy * Math.sin(angle), y: -dx * Math.sin(angle) + dy * Math.cos(angle) };
+            if (devatasResize.axis.includes('x')) state.devatasWidthPercent = Math.min(300, Math.max(25, devatasResize.startWidth * Math.abs(local.x) / Math.max(Math.abs(devatasResize.startLocal.x), 1)));
+            if (devatasResize.axis.includes('y')) state.devatasHeightPercent = Math.min(300, Math.max(25, devatasResize.startHeight * Math.abs(local.y) / Math.max(Math.abs(devatasResize.startLocal.y), 1)));
+            const sizeRange = $('#compassSizeRange'); if (sizeRange) { const value = Math.round(Math.max(state.devatasWidthPercent, state.devatasHeightPercent)); sizeRange.value = String(value); sizeRange.previousElementSibling?.querySelector('output')?.replaceChildren(`W ${Math.round(state.devatasWidthPercent)}% · H ${Math.round(state.devatasHeightPercent)}%`); }
 
             updateDevatasResizePreview();
             return;
         }
-        if (panStart) { transform.panX=panStart.panX+event.clientX-panStart.x; transform.panY=panStart.panY+event.clientY-panStart.y; applyTransform(); event.preventDefault(); return; }
-        if (!draggingVertex) return; const point=planPoint(event); const vertex=selectedPoint(); if(vertex){vertex.x=point.x;vertex.y=point.y;scheduleVertexDragPreview();updateMagnifier(event);event.preventDefault();}
+        if (panStart) { transform.panX = panStart.panX + event.clientX - panStart.x; transform.panY = panStart.panY + event.clientY - panStart.y; applyTransform(); event.preventDefault(); return; }
+        if (!draggingVertex) return; const point = planPoint(event); const vertex = selectedPoint(); if (vertex) { vertex.x = point.x; vertex.y = point.y; scheduleVertexDragPreview(); updateMagnifier(event); event.preventDefault(); }
     }
-    function pointerUp(event) { cancelBoundaryHold();const candidate=event?.pointerType==='touch'&&touchCandidate?.pointerId===event.pointerId?touchCandidate:null;if(event?.pointerType==='touch'){touchPointers.delete(event.pointerId);if(touchPointers.size<2)pinchStart=null;if(candidate&&touchPointers.size===0){touchCandidate=null;markPlanPoint(candidate.point);}else if(candidate)touchCandidate=null;}activeStroke=null;if(draggingVertex){const drag=vertexDragStart;draggingVertex=false;vertexDragStart=null;if(vertexDragFrame){cancelAnimationFrame(vertexDragFrame);vertexDragFrame=0;}if(state.outerBoundary.vertices.length>=4&&G.hasSelfIntersection(state.outerBoundary.vertices)){future.push(clone(state));restore(history.pop());showStatus('Move cancelled because boundary lines would cross.','error');}else{recalculate();renderGeometry();renderSide();if(drag&&Math.hypot(event.clientX-drag.x,event.clientY-drag.y)<10)recordBoundaryEndpointTap(drag.vertexId);}} devatasResize=null;panStart=null;event?.currentTarget?.classList.remove('is-panning');hideMagnifier(); }
+    function pointerUp(event) {
+        cancelBoundaryHold();
+        const candidate = event?.pointerType === 'touch' && touchCandidate?.pointerId === event.pointerId ? touchCandidate : null;
+        if (event?.pointerType === 'touch') {
+            touchPointers.delete(event.pointerId);
+            if (touchPointers.size < 2) pinchStart = null;
+            if (candidate && touchPointers.size === 0) {
+                touchCandidate = null;
+                markPlanPoint(candidate.point);
+            } else if (candidate) touchCandidate = null;
+        }
+        activeStroke = null;
+        isErasing = false;
+        try {
+            if (event?.currentTarget?.hasPointerCapture?.(event.pointerId)) {
+                event.currentTarget.releasePointerCapture(event.pointerId);
+            }
+        } catch(err) {}
+        if (draggingVertex) {
+            const drag = vertexDragStart;
+            draggingVertex = false;
+            vertexDragStart = null;
+            if (vertexDragFrame) {
+                cancelAnimationFrame(vertexDragFrame);
+                vertexDragFrame = 0;
+            }
+            if (state.outerBoundary.vertices.length >= 4 && G.hasSelfIntersection(state.outerBoundary.vertices)) {
+                future.push(clone(state));
+                restore(history.pop());
+                showStatus('Move cancelled because boundary lines would cross.', 'error');
+            } else {
+                recalculate();
+                renderGeometry();
+                renderSide();
+                if (drag && Math.hypot(event.clientX - drag.x, event.clientY - drag.y) < 10) recordBoundaryEndpointTap(drag.vertexId);
+            }
+        }
+        devatasResize = null;
+        panStart = null;
+        event?.currentTarget?.classList.remove('is-panning');
+        hideMagnifier();
+    }
 
     function scheduleVertexDragPreview(){
         if(vertexDragFrame)return;
@@ -992,11 +1257,32 @@
         return `${out}</g>`;
     }
 
-    function annotationMarkup(){return currentAnnotations().map(stroke=>{const d=stroke.points.map((point,index)=>`${index?'L':'M'}${point.x} ${point.y}`).join(' ');return `<path class="pro-annotation-stroke" d="${d}" fill="none" stroke="${stroke.color}" stroke-width="${stroke.size}" stroke-linecap="round" stroke-linejoin="round"/>`;}).join('');}
+    function annotationMarkup(){
+        return currentAnnotations().map(stroke=>{
+            if (!stroke.points || stroke.points.length === 0) return '';
+            const pts = stroke.points;
+            let d;
+            if (pts.length === 1) {
+                d = `M ${pts[0].x} ${pts[0].y} L ${pts[0].x + 0.1} ${pts[0].y}`;
+            } else {
+                d = pts.map((p, i) => `${i ? 'L' : 'M'}${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' ');
+            }
+            const color = stroke.color || '#e11d48';
+            const size = Math.max(1, Number(stroke.size) || 5);
+            return `<path class="pro-annotation-stroke" d="${d}" fill="none" stroke="${color}" stroke-width="${size}" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>`;
+        }).join('');
+    }
     function renderAnnotations(){
-        const layer=$('#proGeometry .pro-annotations');
-        if(layer){layer.dataset.pattern=compassView;layer.innerHTML=annotationMarkup();}
-        else renderGeometry();
+        const markup = annotationMarkup();
+        const topLayer = $('#proDrawingLayer');
+        if (topLayer) {
+            topLayer.innerHTML = markup;
+        }
+        const layer = $('#proGeometry .pro-annotations');
+        if (layer) {
+            layer.dataset.pattern = compassView;
+            layer.innerHTML = markup;
+        }
     }
     function renderGeometry(){const svg=$('#proGeometry');const points=state.outerBoundary.vertices;const calibration=state.calibration;const calPoints=calibration?.draftPoints || (calibration?.pointA ? [calibration.pointA,calibration.pointB] : []);let out='';
         if(calPoints.length){out+=calPoints.map((p,i)=>`<circle class="pro-cal-point" data-cal-point="${i}" cx="${p.x}" cy="${p.y}" r="7"/><text class="pro-point-label" data-cal-label="${i}" x="${p.x+10}" y="${p.y-10}">${i?'B':'A'}</text>`).join('');if(calPoints.length===2)out+=`<line class="pro-cal-line" x1="${calPoints[0].x}" y1="${calPoints[0].y}" x2="${calPoints[1].x}" y2="${calPoints[1].y}"/>`;}

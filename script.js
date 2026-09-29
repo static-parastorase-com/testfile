@@ -1140,8 +1140,14 @@ function setupEventListeners() {
     const zoomResetBtn = document.getElementById('zoomResetBtn');
     const fullscreenToggle = document.getElementById('fullscreenToggle');
 
-    addPressListener(uploadBtn, showUploadPopup);
-    addPressListener(emptyUploadBtn, showUploadPopup);
+    if (uploadBtn) {
+        uploadBtn.addEventListener('click', (e) => { e.preventDefault(); showUploadPopup(); });
+        addPressListener(uploadBtn, showUploadPopup);
+    }
+    if (emptyUploadBtn) {
+        emptyUploadBtn.addEventListener('click', (e) => { e.preventDefault(); showUploadPopup(); });
+        addPressListener(emptyUploadBtn, showUploadPopup);
+    }
     addPressListener(pdfToImageUploadBtn, showPdfToImagePopup);
     addPressListener(confirmUploadBtn, handleFileUpload);
     addPressListener(cancelUploadBtn, closePopup);
@@ -1459,11 +1465,12 @@ function configurePdfJsWorker() {
 
 // Upload functions
 function showUploadPopup() {
-    window.showUploadPopup = showUploadPopup;
     const popup = document.getElementById('popupOverlay');
     if (popup) {
         popup.style.display = 'flex';
         popup.style.pointerEvents = 'auto'; // allow interaction
+        popup.classList.add('active');
+        popup.removeAttribute('aria-hidden');
     }
 
     const fileInput = document.getElementById('fileInput');
@@ -1472,7 +1479,9 @@ function showUploadPopup() {
     const directionSelect = document.getElementById('northDirection');
     if (directionSelect) {
         directionSelect.value = 'north';
-        updateCompassRotation(directionSelect.value);
+        if (typeof updateCompassRotation === 'function') {
+            updateCompassRotation(directionSelect.value);
+        }
     }
 
     const floorFeatureSelect = document.getElementById('floorFeatureSelect');
@@ -1480,13 +1489,17 @@ function showUploadPopup() {
         floorFeatureSelect.value = 'yes';
     }
 
-    updateFloorFeatureInfo();
+    if (typeof updateFloorFeatureInfo === 'function') {
+        updateFloorFeatureInfo();
+    }
 
     selectedFile = null;
 
     stopLanguageGuideSpeech();
     speakUploadInstructions();
 }
+window.showUploadPopup = showUploadPopup;
+window.closePopup = closePopup;
 
 function showPdfToImagePopup() {
     const uploadPopup = document.getElementById('popupOverlay');
